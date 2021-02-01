@@ -1,5 +1,6 @@
 c"""source-before-namespace
 #include <fstream>
+#include <filesystem>
 """
 
 class OsError(Error):
@@ -21,22 +22,65 @@ def ls(path: string) -> [string]:
     raise NotImplementedError()
 
 def rm(path: string, recursive: bool = False, force: bool = False):
+    """Remove files and directories.
+
+    Give `recursive` as ``True`` to remove all files and folders
+    recursivly.
+
+    Give `force` as ``True`` to ignore errors.
+
+    """
+
     path_utf8 = _to_utf8(path)
-    res = 0
+    message: string = None
 
     c"""
-    res = remove((char *)path_utf8.m_bytes->data());
+    std::error_code ec;
+    bool ok;
 
-    if (force && (res != 0) && (errno == ENOENT)) {
-        res = 0;
+    if (recursive) {
+        ok = (std::filesystem::remove_all((char *)path_utf8.m_bytes->data(), ec) > 0);
+    } else {
+        ok = std::filesystem::remove((char *)path_utf8.m_bytes->data(), ec);
+    }
+
+    if (!ok) {
+        if (!force) {
+            if (ec) {
+                message = String(ec.message());
+            } else {
+                message = String(strerror(ENOENT));
+            }
+        }
     }
     """
 
-    if res != 0:
-        raise OsError("rm failed")
+    if message is not None:
+        raise OsError(message)
 
 def mkdir(path: string, exists_ok: bool = False):
-    raise NotImplementedError()
+    """Create directories.
+
+    Give `exists_ok` as ``True`` to ignore errors.
+
+    """
+
+    path_utf8 = _to_utf8(path)
+    message: string = None
+
+    c"""
+    std::error_code ec;
+    bool ok;
+
+    ok = std::filesystem::create_directories((char *)path_utf8.m_bytes->data(), ec);
+
+    if (!ok) {
+        message = String(ec.message());
+    }
+    """
+
+    if message is not None:
+        raise OsError(message)
 
 def exists(path: string) -> bool:
     return is_file(path) or is_dir(path)
@@ -82,24 +126,35 @@ def abspath(path: string) -> string:
 def expanduser(path: string) -> string:
     raise NotImplementedError()
 
-# @test
-# def test_rm_empty_directory():
-#     rm("test_rm_empty_directory", recursive=True, force=True)
-#     mkdir("test_rm_empty_directory")
-#     rm("test_rm_empty_directory", recursive=True)
+@test
+def test_rm():
+    rm("test_rm", recursive=True, force=True)
+    mkdir("test_rm")
+    rm("test_rm", recursive=True)
+    mkdir("test_rm/foo/bar", exists_ok=True)
+    message: string = None
+
+    try:
+        rm("test_rm")
+    except OsError as e:
+        message = e.message
+
+    assert message == "Directory not empty"
+
+    rm("test_rm", recursive=True)
 
 @test
 def test_rm_single_file():
     touch("test_rm_single_file")
     rm("test_rm_single_file")
+    message: string = None
 
     try:
-        raised = False
         rm("test_rm_single_file")
-    except OsError:
-        raised = True
+    except OsError as e:
+        message = e.message
 
-    assert raised
+    assert message == "No such file or directory"
 
     rm("test_rm_single_file", force=True)
 
