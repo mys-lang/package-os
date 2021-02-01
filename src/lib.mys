@@ -1,7 +1,77 @@
 c"""source-before-namespace
 #include <fstream>
 #include <filesystem>
+#include <cstdlib>
+
+extern char **environ;
 """
+
+_ENV: _Env = _Env()
+
+class _Env:
+    _values: {string: string}
+
+    def __init__(self):
+        self._load()
+
+    def get(self, name: string, default: string = None) -> string:
+        """Get given environment variable.
+
+        """
+
+        return self._values.get(name, default)
+
+    def set(self, name: string, value: string):
+        """Set given environment variable.
+
+        """
+
+        name_utf8 = to_utf8(name)
+        value_utf8 = to_utf8(value)
+
+        c"""
+        setenv((const char *)name_utf8.m_bytes->data(),
+               (const char *)value_utf8.m_bytes->data(),
+               1);
+        """
+
+        self._values[name] = value
+
+    def unset(self, name: string):
+        """Unset given environment variable.
+
+        """
+
+        name_utf8 = to_utf8(name)
+
+        c"""
+        unsetenv((const char *)name_utf8.m_bytes->data());
+        """
+
+        self._values.pop(name, None)
+
+    def _load(self):
+        self._values = {}
+        line: string = None
+
+        c"""
+        char **envvar = environ;
+
+        while (*envvar != NULL) {
+            line = String(*envvar);
+        """
+
+        pos = line.find("=")
+
+        if pos > 0:
+            name = line[:pos]
+            value = line[pos + 1:]
+            self._values[name] = value
+
+        c"""
+            envvar++;
+        }
+        """
 
 class OsError(Error):
     message: string
@@ -126,6 +196,13 @@ def abspath(path: string) -> string:
 def expanduser(path: string) -> string:
     raise NotImplementedError()
 
+def env() -> _Env:
+    """Returns the envirionment.
+
+    """
+
+    return _ENV
+
 @test
 def test_rm():
     rm("test_rm", recursive=True, force=True)
@@ -157,3 +234,17 @@ def test_rm_single_file():
     assert message == "No such file or directory"
 
     rm("test_rm_single_file", force=True)
+
+@test
+def test_env_get_pwd():
+    assert env().get("PWD") is not None
+
+@test
+def test_env_get_set_unset():
+    assert env().get("FOOBAR") is None
+
+    env().set("FOOBAR", "banan")
+    assert env().get("FOOBAR") == "banan"
+
+    env().unset("FOOBAR")
+    assert env().get("FOOBAR") is None

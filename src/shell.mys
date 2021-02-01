@@ -191,16 +191,16 @@ class Reverse(Action):
         self._lines.reverse()
 
 class Uniq(Action):
-    prev: Action
+    _prev: Action
     _seen: {string: bool}
 
     def __init__(self, prev: Action):
-        self.prev = prev
+        self._prev = prev
         self._seen = {}
 
     def next(self) -> string:
         while True:
-            line = self.prev.next()
+            line = self._prev.next()
 
             if line is None:
                 return None
