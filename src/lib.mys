@@ -14,6 +14,9 @@ class _Env:
     def __init__(self):
         self._load()
 
+    def all(self) -> {string: string}:
+        return self._values
+
     def get(self, name: string) -> string:
         """Get given environment variable.
 
@@ -267,3 +270,8 @@ def test_env_get_set_unset():
 
     env().unset("FOOBAR")
     assert env().get("FOOBAR", None) is None
+
+@test
+def test_all():
+    assert env().all() is not None
+    assert "PWD" in env().all()
