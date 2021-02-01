@@ -1,2 +1,294 @@
-def which(name: string):
+c"""source-before-namespace
+#include <fstream>
+"""
+
+class OsError(Error):
+    message: string
+
+def _to_utf8(value: string) -> bytes:
+    value_utf8 = value.to_utf8()
+    value_utf8 += 0
+
+    return value_utf8
+
+def which(name: string) -> bool:
+    raise NotImplementedError()
+
+def ln(src_path: string, dst_path: string):
+    raise NotImplementedError()
+
+def ls(path: string) -> [string]:
+    raise NotImplementedError()
+
+def rm(path: string, recursive: bool = False, force: bool = False):
+    path_utf8 = _to_utf8(path)
+    res = 0
+
+    c"""
+    res = remove((char *)path_utf8.m_bytes->data());
+
+    if (force && (res != 0) && (errno == ENOENT)) {
+        res = 0;
+    }
+    """
+
+    if res != 0:
+        raise OsError("rm failed")
+
+def mkdir(path: string, exists_ok: bool = False):
+    raise NotImplementedError()
+
+def exists(path: string) -> bool:
+    return is_file(path) or is_dir(path)
+
+def chmod(path: string, mode: u32):
+    raise NotImplementedError()
+
+class Stat:
     pass
+
+def stat(path: string) -> Stat:
+    raise NotImplementedError()
+
+def cwd() -> string:
+    raise NotImplementedError()
+
+def is_file(path: string) -> bool:
+    raise NotImplementedError()
+
+def is_dir(path: string) -> bool:
+    raise NotImplementedError()
+
+def readlink(path: string) -> string:
+    raise NotImplementedError()
+
+def touch(path: string):
+    # ToDo: Use open().
+    path_utf8 = _to_utf8(path)
+
+    c"""
+    std::ofstream MyFile((char *)path_utf8.m_bytes->data());
+    """
+
+def basename(path: string) -> string:
+    raise NotImplementedError()
+
+def cd(path: string):
+    raise NotImplementedError()
+
+def abspath(path: string) -> string:
+    raise NotImplementedError()
+
+def expanduser(path: string) -> string:
+    raise NotImplementedError()
+
+# @test
+# def test_rm_empty_directory():
+#     rm("test_rm_empty_directory", recursive=True, force=True)
+#     mkdir("test_rm_empty_directory")
+#     rm("test_rm_empty_directory", recursive=True)
+
+@test
+def test_rm_single_file():
+    touch("test_rm_single_file")
+    rm("test_rm_single_file")
+
+    try:
+        raised = False
+        rm("test_rm_single_file")
+    except OsError:
+        raised = True
+
+    assert raised
+
+    rm("test_rm_single_file", force=True)
+
+@trait
+class Action:
+
+    def next(self) -> string:
+        pass
+
+    def collect(self) -> [string]:
+        lines: [string] = []
+
+        while True:
+            line = self.next()
+
+            if line is None:
+                break
+
+            lines.append(line)
+
+        return lines
+
+class Find(Action):
+    name: string
+    _lines: [string]
+    _pos: u64
+
+    def __init__(self, name: string):
+        self._pos = 0
+        self._lines = ["c", "b", "a", "e", "d"]
+
+    def next(self) -> string:
+        if self._pos < len(self._lines):
+            self._pos += 1
+
+            return self._lines[self._pos - 1]
+        else:
+            return None
+
+class Grep(Action):
+    prev: Action
+    pattern: string
+    invert: bool
+
+    def next(self) -> string:
+        while True:
+            line = self.prev.next()
+
+            if line is None:
+                return None
+
+            if self.invert:
+                if line.find(self.pattern) == -1:
+                    return line
+            else:
+                if line.find(self.pattern) != -1:
+                    return line
+
+class Head(Action):
+    prev: Action
+    count: i64
+    _count: i64
+
+    def next(self) -> string:
+        if self._count < self.count:
+            self._count += 1
+
+            return self.prev.next()
+        else:
+            return None
+
+class Tail(Action):
+    prev: Action
+    count: i64
+    _lines: [string]
+
+    def next(self) -> string:
+        if self._lines is None:
+            self._gather()
+
+        if len(self._lines) == 0:
+            return None
+        else:
+            return self._lines.pop(0)
+
+    def _gather(self):
+        self._lines = []
+
+        while True:
+            line = self.prev.next()
+
+            if line is None:
+                break
+
+            self._lines.append(line)
+
+            if i64(len(self._lines)) > self.count:
+                self._lines.pop(0)
+
+class Sort(Action):
+    prev: Action
+    _lines: [string]
+
+    def next(self) -> string:
+        if self._lines is None:
+            self._gather()
+
+        if len(self._lines) == 0:
+            return None
+        else:
+            return self._lines.pop(0)
+
+    def _gather(self):
+        self._lines = []
+
+        while True:
+            line = self.prev.next()
+
+            if line is None:
+                break
+
+            self._lines.append(line)
+
+        self._lines.sort()
+
+class Reverse(Action):
+    prev: Action
+    _lines: [string]
+
+    def next(self) -> string:
+        if self._lines is None:
+            self._gather()
+
+        if len(self._lines) == 0:
+            return None
+        else:
+            return self._lines.pop(0)
+
+    def _gather(self):
+        self._lines = []
+
+        while True:
+            line = self.prev.next()
+
+            if line is None:
+                break
+
+            self._lines.append(line)
+
+        self._lines.reverse()
+
+class Command:
+    _action: Action
+
+    def find(self, name: string) -> Command:
+        return self._pipe(Find(name))
+
+    def grep(self, pattern: string, invert: bool = False) -> Command:
+        return self._pipe(Grep(self._action, pattern, invert))
+
+    def head(self, count: i64 = 10) -> Command:
+        return self._pipe(Head(self._action, count))
+
+    def tail(self, count: i64 = 10) -> Command:
+        return self._pipe(Tail(self._action, count))
+
+    def sort(self) -> Command:
+        return self._pipe(Sort(self._action))
+
+    def reverse(self) -> Command:
+        return self._pipe(Reverse(self._action))
+
+    def collect(self) -> [string]:
+        return self._action.collect()
+
+    def _pipe(self, action: Action) -> Command:
+        self._action = action
+
+        return self
+
+def find(name: string) -> Command:
+    return Command().find(name)
+
+@test
+def test_cat():
+    assert find("foo").grep("b").head(2).collect() == ["b"]
+    assert find("foo").grep("b", invert=True).head(2).collect() == ["c", "a"]
+    assert find("foo").tail().collect() == ["c", "b", "a", "e", "d"]
+    assert find("foo").tail(3).collect() == ["a", "e", "d"]
+    assert find("foo").tail(3).grep("d", invert=True).collect() == ["a", "e"]
+    assert find("foo").tail().sort().collect() == ["a", "b", "c", "d", "e"]
+    assert find("foo").tail(3).sort().reverse().head(2).collect() == ["e", "d"]
