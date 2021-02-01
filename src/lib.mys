@@ -14,8 +14,19 @@ class _Env:
     def __init__(self):
         self._load()
 
-    def get(self, name: string, default: string = None) -> string:
+    def get(self, name: string) -> string:
         """Get given environment variable.
+
+        """
+
+        if name not in self._values:
+            raise OsError(f"environment variable '{name}' is not set")
+
+        return self.get(name, None)
+
+    def get(self, name: string, default: string) -> string:
+        """Get given environment variable. Returns given default value if the
+        environment variable is not set.
 
         """
 
@@ -241,10 +252,18 @@ def test_env_get_pwd():
 
 @test
 def test_env_get_set_unset():
-    assert env().get("FOOBAR") is None
+    message: string = None
+
+    try:
+        env().get("FOOBAR")
+    except OsError as e:
+        message = e.message
+
+    assert message == "environment variable 'FOOBAR' is not set"
+    assert env().get("FOOBAR", "apple") == "apple"
 
     env().set("FOOBAR", "banan")
     assert env().get("FOOBAR") == "banan"
 
     env().unset("FOOBAR")
-    assert env().get("FOOBAR") is None
+    assert env().get("FOOBAR", None) is None
