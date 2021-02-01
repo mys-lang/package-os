@@ -1,0 +1,288 @@
+from . import to_utf8
+from . import OsError
+from . import mkdir
+from . import touch
+from . import rm
+
+c"""source-before-namespace
+#include <filesystem>
+"""
+
+@trait
+class Action:
+
+    def next(self) -> string:
+        pass
+
+    def collect(self) -> [string]:
+        lines: [string] = []
+
+        while True:
+            line = self.next()
+
+            if line is None:
+                break
+
+            lines.append(line)
+
+        return lines
+
+class Lines(Action):
+    _lines: [string]
+    _pos: u64
+
+    def __init__(self, lines: [string]):
+        self._pos = 0
+        self._lines = lines
+
+    def next(self) -> string:
+        if self._pos < len(self._lines):
+            self._pos += 1
+
+            return self._lines[self._pos - 1]
+        else:
+            return None
+
+class Find(Action):
+    name: string
+    _lines: [string]
+    _pos: u64
+
+    def __init__(self, name: string, root: string = "."):
+        self._pos = 0
+        self._lines = []
+        root_utf8 = to_utf8(root)
+        message: string = None
+
+        c"""
+        std::error_code ec;
+        char *root_p = (char *)root_utf8.m_bytes->data();
+
+        for (const auto & entry : std::filesystem::directory_iterator(root_p, ec)) {
+            this->_lines->append(String(entry.path()));
+        }
+
+        if (ec) {
+            message = String(ec.message());
+        }
+        """
+
+        if message is not None:
+            raise OsError(message)
+
+    def next(self) -> string:
+        if self._pos < len(self._lines):
+            self._pos += 1
+
+            return self._lines[self._pos - 1]
+        else:
+            return None
+
+class Grep(Action):
+    prev: Action
+    pattern: string
+    invert: bool
+
+    def next(self) -> string:
+        while True:
+            line = self.prev.next()
+
+            if line is None:
+                return None
+
+            if self.invert:
+                if line.find(self.pattern) == -1:
+                    return line
+            else:
+                if line.find(self.pattern) != -1:
+                    return line
+
+class Head(Action):
+    prev: Action
+    count: i64
+    _count: i64
+
+    def next(self) -> string:
+        if self._count < self.count:
+            self._count += 1
+
+            return self.prev.next()
+        else:
+            return None
+
+class Tail(Action):
+    prev: Action
+    count: i64
+    _lines: [string]
+
+    def next(self) -> string:
+        if self._lines is None:
+            self._gather()
+
+        if len(self._lines) == 0:
+            return None
+        else:
+            return self._lines.pop(0)
+
+    def _gather(self):
+        self._lines = []
+
+        while True:
+            line = self.prev.next()
+
+            if line is None:
+                break
+
+            self._lines.append(line)
+
+            if i64(len(self._lines)) > self.count:
+                self._lines.pop(0)
+
+class Sort(Action):
+    prev: Action
+    _lines: [string]
+
+    def next(self) -> string:
+        if self._lines is None:
+            self._gather()
+
+        if len(self._lines) == 0:
+            return None
+        else:
+            return self._lines.pop(0)
+
+    def _gather(self):
+        self._lines = []
+
+        while True:
+            line = self.prev.next()
+
+            if line is None:
+                break
+
+            self._lines.append(line)
+
+        self._lines.sort()
+
+class Reverse(Action):
+    prev: Action
+    _lines: [string]
+
+    def next(self) -> string:
+        if self._lines is None:
+            self._gather()
+
+        if len(self._lines) == 0:
+            return None
+        else:
+            return self._lines.pop(0)
+
+    def _gather(self):
+        self._lines = []
+
+        while True:
+            line = self.prev.next()
+
+            if line is None:
+                break
+
+            self._lines.append(line)
+
+        self._lines.reverse()
+
+class Uniq(Action):
+    prev: Action
+    _seen: {string: bool}
+
+    def __init__(self, prev: Action):
+        self.prev = prev
+        self._seen = {}
+
+    def next(self) -> string:
+        while True:
+            line = self.prev.next()
+
+            if line is None:
+                return None
+
+            if line not in self._seen:
+                self._seen[line] = True
+
+                return line
+
+class Pipe:
+    _action: Action
+
+    def __init__(self, lines: [string] = None):
+        if lines is None:
+            self._action = None
+        else:
+            self._action = Lines(lines)
+
+    def find(self, name: string, root: string = ".") -> Pipe:
+        return self._pipe(Find(name, root))
+
+    def grep(self, pattern: string, invert: bool = False) -> Pipe:
+        return self._pipe(Grep(self._action, pattern, invert))
+
+    def head(self, count: i64 = 10) -> Pipe:
+        return self._pipe(Head(self._action, count))
+
+    def tail(self, count: i64 = 10) -> Pipe:
+        return self._pipe(Tail(self._action, count))
+
+    def sort(self) -> Pipe:
+        return self._pipe(Sort(self._action))
+
+    def reverse(self) -> Pipe:
+        return self._pipe(Reverse(self._action))
+
+    def uniq(self) -> Pipe:
+        return self._pipe(Uniq(self._action))
+
+    def collect(self) -> [string]:
+        return self._action.collect()
+
+    def _pipe(self, action: Action) -> Pipe:
+        self._action = action
+
+        return self
+
+def find(name: string, root: string = ".") -> Pipe:
+    return Pipe().find(name, root)
+
+@test
+def test_lines():
+    lines = ["a", "b", "f", "a", "x"]
+
+    assert Pipe(lines).collect() == ["a", "b", "f", "a", "x"]
+    assert Pipe(lines).tail(3).collect() == ["f", "a", "x"]
+    assert Pipe(lines).uniq().collect() == ["a", "b", "f", "x"]
+
+@test
+def test_find():
+    rm("z", recursive=True, force=True)
+    mkdir("z")
+
+    for name in ["c", "b", "a", "e", "d"]:
+        touch(f"z/{name}")
+
+    lines = find("*", "z").grep("b").head(2).collect()
+    assert lines == ["z/b"]
+
+    lines = find("*", "z").sort().grep("b", invert=True).head(2).collect()
+    assert lines == ["z/a", "z/c"]
+
+    lines = find("*", "z").sort().tail(3).collect()
+    assert lines == ["z/c", "z/d", "z/e"]
+
+    lines = find("*", "z").sort().tail(3).grep("d", invert=True).collect()
+    assert lines == ["z/c", "z/e"]
+
+    lines = find("*", "z").tail().sort().collect()
+    assert lines == ["z/a", "z/b", "z/c", "z/d", "z/e"]
+
+    lines = find("*", "z").sort().tail(3).reverse().head(2).collect()
+    assert lines == ["z/e", "z/d"]
+
+    rm("z", recursive=True, force=True)
