@@ -3,8 +3,8 @@ Os
 
 OS utilities in the `Mys programming language`_.
 
-Basic example
-=============
+Files and folders example
+=========================
 
 .. code-block:: python
 
