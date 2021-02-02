@@ -36,10 +36,9 @@ def _load_env() -> {string: string}:
         line = String(*envvar);
     """
 
-    parts = line.partition("=")
+    name, separator, value = line.partition("=")
 
-    if parts is not None:
-        name, _, value = parts
+    if separator == "=":
         variables[name] = value
 
     c"""
