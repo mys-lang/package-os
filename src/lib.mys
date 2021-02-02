@@ -57,8 +57,19 @@ def to_utf8(value: string) -> bytes:
 
     return value_utf8
 
-def which(name: string) -> bool:
-    raise NotImplementedError()
+def which(name: string) -> string:
+    """Locate given command.
+
+    """
+
+    # Obviously not perfect...
+    for path in getenv("PATH").split(":"):
+        full_path = f"{path}/{name}"
+
+        if exists(full_path):
+            return full_path
+
+    return None
 
 def ln(src_path: string, dst_path: string):
     raise NotImplementedError()
@@ -120,7 +131,11 @@ def mkdir(path: string, exists_ok: bool = False):
     ok = std::filesystem::create_directories((char *)path_utf8.m_bytes->data(), ec);
 
     if (!ok) {
-        message = String(ec.message());
+        if (ec) {
+            message = String(ec.message());
+        } else if (!exists_ok) {
+            message = String(strerror(EEXIST));
+        }
     }
     """
 
@@ -128,7 +143,14 @@ def mkdir(path: string, exists_ok: bool = False):
         raise OsError(message)
 
 def exists(path: string) -> bool:
-    return is_file(path) or is_dir(path)
+    res: bool = False
+    path_utf8 = to_utf8(path)
+
+    c"""
+    res = std::filesystem::exists((const char *)path_utf8.m_bytes->data());
+    """
+
+    return res
 
 def chmod(path: string, mode: u32):
     """Change permissions of given file.
@@ -154,7 +176,13 @@ def stat(path: string) -> Stat:
     raise NotImplementedError()
 
 def cwd() -> string:
-    raise NotImplementedError()
+    path: string = None
+
+    c"""
+    path = String(std::filesystem::current_path());
+    """
+
+    return path
 
 def is_file(path: string) -> bool:
     raise NotImplementedError()
@@ -177,7 +205,21 @@ def basename(path: string) -> string:
     raise NotImplementedError()
 
 def cd(path: string):
-    raise NotImplementedError()
+    path_utf8 = to_utf8(path)
+    message: string = None
+
+    c"""
+    std::error_code ec;
+
+    std::filesystem::current_path((char *)path_utf8.m_bytes->data(), ec);
+
+    if (ec) {
+        message = String(ec.message());
+    }
+    """
+
+    if message is not None:
+        raise OsError(message)
 
 def abspath(path: string) -> string:
     raise NotImplementedError()
@@ -244,9 +286,9 @@ def test_rm():
     mkdir("test_rm")
     rm("test_rm", recursive=True)
     mkdir("test_rm/foo/bar", exists_ok=True)
-    message: string = None
 
     try:
+        message = ""
         rm("test_rm")
     except OsError as e:
         message = e.message
@@ -259,9 +301,9 @@ def test_rm():
 def test_rm_single_file():
     touch("test_rm_single_file")
     rm("test_rm_single_file")
-    message: string = None
 
     try:
+        message = ""
         rm("test_rm_single_file")
     except OsError as e:
         message = e.message
@@ -276,9 +318,8 @@ def test_env_get_pwd():
 
 @test
 def test_env_get_set_unset():
-    message: string = None
-
     try:
+        message = ""
         getenv("FOOBAR")
     except OsError as e:
         message = e.message
@@ -303,9 +344,8 @@ def test_chmod():
 
     rm(filename, force=True)
 
-    message: string = None
-
     try:
+        message = ""
         chmod(filename, 0o666)
     except OsError as e:
         message = e.message
@@ -315,3 +355,52 @@ def test_chmod():
     touch(filename)
     chmod(filename, 0o666)
     rm(filename)
+
+@test
+def test_which():
+    assert which("mys-xyz123") is None
+    assert which("ls") is not None
+
+@test
+def test_cwd():
+    mkdir("cmd", exists_ok=True)
+    cd("cmd")
+    assert cwd().ends_with("cmd")
+    cd("..")
+    rm("cmd")
+
+@test
+def test_mkdir():
+    rm("adir", force=True)
+    mkdir("adir", exists_ok=True)
+
+    try:
+        message = ""
+        mkdir("adir")
+    except OsError as e:
+        message = e.message
+
+    assert message == "File exists"
+
+@test
+def test_cd():
+    rm("ccc", force=True)
+    path = cwd()
+
+    try:
+        message = ""
+        cd("ccc")
+    except OsError as e:
+        message = e.message
+
+    assert message == "No such file or directory"
+
+    mkdir("ccc")
+    cd("ccc")
+    assert cwd() != path
+    touch("ccc/apa")
+    cd("..")
+    assert cwd() == path
+    exists("ccc/apa")
+
+    rm("ccc", recursive=True, force=True)
