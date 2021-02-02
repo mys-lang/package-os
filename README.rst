@@ -22,7 +22,7 @@ Files and folders example
 
        mkdir("foo")
        cd("foo")
-       cwd()
+       print("Current working directory is", cwd())
        touch("bar")
 
        if exists("bar"):
