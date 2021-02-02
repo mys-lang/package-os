@@ -2,6 +2,8 @@ c"""source-before-namespace
 #include <fstream>
 #include <filesystem>
 #include <cstdlib>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 extern char **environ;
 
@@ -13,6 +15,11 @@ static inline void setenv_wrapper(const char *name_p, const char *value_p)
 static inline void unsetenv_wrapper(const char *name_p)
 {
     unsetenv(name_p);
+}
+
+static inline int chmod_wrapper(const char *name_p, u32 mode)
+{
+    return chmod(name_p, mode);
 }
 """
 
@@ -125,7 +132,17 @@ def exists(path: string) -> bool:
     return is_file(path) or is_dir(path)
 
 def chmod(path: string, mode: u32):
-    raise NotImplementedError()
+    message: string = None
+    path_utf8 = to_utf8(path)
+
+    c"""
+    if (chmod_wrapper((const char *)path_utf8.m_bytes->data(), mode) != 0) {
+        message = String(strerror(errno));
+    }
+    """
+
+    if message is not None:
+        raise OsError(message)
 
 class Stat:
     pass
@@ -276,3 +293,22 @@ def test_env_get_set_unset():
 def test_all():
     assert env() is not None
     assert "PWD" in env()
+
+@test
+def test_chmod():
+    filename = "cmod"
+
+    rm(filename, force=True)
+
+    message: string = None
+
+    try:
+        chmod(filename, 0x666)
+    except OsError as e:
+        message = e.message
+
+    assert message == "No such file or directory"
+
+    touch(filename)
+    chmod(filename, 0x666)
+    rm(filename)

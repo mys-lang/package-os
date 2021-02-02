@@ -192,7 +192,7 @@ class Reverse(Action):
 
 class Uniq(Action):
     _prev: Action
-    _seen: {string: bool}
+    _seen: {string}
 
     def __init__(self, prev: Action):
         self._prev = prev
@@ -206,7 +206,7 @@ class Uniq(Action):
                 return None
 
             if line not in self._seen:
-                self._seen[line] = True
+                self._seen.add(line)
 
                 return line
 
