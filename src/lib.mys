@@ -131,6 +131,10 @@ def exists(path: string) -> bool:
     return is_file(path) or is_dir(path)
 
 def chmod(path: string, mode: u32):
+    """Change permissions of given file.
+
+    """
+
     message: string = None
     path_utf8 = to_utf8(path)
 
@@ -302,12 +306,12 @@ def test_chmod():
     message: string = None
 
     try:
-        chmod(filename, 0x666)
+        chmod(filename, 0o666)
     except OsError as e:
         message = e.message
 
     assert message == "No such file or directory"
 
     touch(filename)
-    chmod(filename, 0x666)
+    chmod(filename, 0o666)
     rm(filename)
