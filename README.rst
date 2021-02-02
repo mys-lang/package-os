@@ -8,11 +8,28 @@ Basic example
 
 .. code-block:: python
 
+   from os import cd
+   from os import cwd
+   from os import exists
+   from os import mkdir
+   from os import rm
+   from os import touch
    from os import which
 
    def main():
-       if which("ls"):
+       if which("ls") is not None:
            print("executable ls found")
+
+       mkdir("foo")
+       cd("foo")
+       cwd()
+       touch("bar")
+
+       if exists("bar"):
+           print("bar exists")
+
+       cd("..")
+       rm("foo", recursive=True, force=True)
 
 Shell example
 =============
