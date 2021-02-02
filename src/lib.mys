@@ -29,11 +29,10 @@ def _load_env() -> {string: string}:
         line = String(*envvar);
     """
 
-    pos = line.find("=")
+    parts = line.partition("=")
 
-    if pos > 0:
-        name = line[:pos]
-        value = line[pos + 1:]
+    if parts is not None:
+        name, _, value = parts
         variables[name] = value
 
     c"""
