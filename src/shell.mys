@@ -29,7 +29,7 @@ class Action:
 
 class Lines(Action):
     _lines: [string]
-    _pos: i64
+    _pos: u64
 
     def __init__(self, lines: [string]):
         self._pos = 0
@@ -46,7 +46,7 @@ class Lines(Action):
 class Find(Action):
     name: string
     _lines: [string]
-    _pos: i64
+    _pos: u64
 
     def __init__(self, name: string, root: string = "."):
         self._pos = 0
