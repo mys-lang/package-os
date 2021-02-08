@@ -1,4 +1,4 @@
-from . import to_utf8
+from .utils import to_utf8
 from . import OsError
 from . import mkdir
 from . import touch
@@ -249,6 +249,10 @@ class Pipe:
         return self
 
 def find(name: string, root: string = ".") -> Pipe:
+    """Find files and folders in given path.
+
+    """
+    
     return Pipe().find(name, root)
 
 @test

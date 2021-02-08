@@ -1,3 +1,5 @@
+from .utils import to_utf8
+
 c"""source-before-namespace
 #include <fstream>
 #include <filesystem>

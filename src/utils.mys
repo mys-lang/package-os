@@ -1,0 +1,5 @@
+def to_utf8(value: string) -> bytes:
+    value_utf8 = value.to_utf8()
+    value_utf8 += 0
+
+    return value_utf8
