@@ -9,7 +9,7 @@ c"""source-before-namespace
 """
 
 @trait
-class Action:
+class _Action:
 
     def next(self) -> string:
         pass
@@ -27,7 +27,7 @@ class Action:
 
         return lines
 
-class Lines(Action):
+class _Echo(_Action):
     _lines: [string]
     _pos: u64
 
@@ -43,7 +43,7 @@ class Lines(Action):
         else:
             return None
 
-class Find(Action):
+class _Find(_Action):
     name: string
     _lines: [string]
     _pos: u64
@@ -78,8 +78,8 @@ class Find(Action):
         else:
             return None
 
-class Grep(Action):
-    prev: Action
+class _Grep(_Action):
+    prev: _Action
     pattern: string
     invert: bool
 
@@ -97,8 +97,8 @@ class Grep(Action):
                 if line.find(self.pattern) != -1:
                     return line
 
-class Head(Action):
-    prev: Action
+class _Head(_Action):
+    prev: _Action
     count: i64
     _count: i64
 
@@ -110,8 +110,8 @@ class Head(Action):
         else:
             return None
 
-class Tail(Action):
-    prev: Action
+class _Tail(_Action):
+    prev: _Action
     count: i64
     _lines: [string]
 
@@ -138,8 +138,8 @@ class Tail(Action):
             if i64(len(self._lines)) > self.count:
                 self._lines.pop(0)
 
-class Sort(Action):
-    prev: Action
+class _Sort(_Action):
+    prev: _Action
     _lines: [string]
 
     def next(self) -> string:
@@ -164,8 +164,8 @@ class Sort(Action):
 
         self._lines.sort()
 
-class Reverse(Action):
-    prev: Action
+class _Reverse(_Action):
+    prev: _Action
     _lines: [string]
 
     def next(self) -> string:
@@ -190,11 +190,11 @@ class Reverse(Action):
 
         self._lines.reverse()
 
-class Uniq(Action):
-    _prev: Action
+class _Uniq(_Action):
+    _prev: _Action
     _seen: {string}
 
-    def __init__(self, prev: Action):
+    def __init__(self, prev: _Action):
         self._prev = prev
         self._seen = {}
 
@@ -211,57 +211,86 @@ class Uniq(Action):
                 return line
 
 class Pipe:
-    _action: Action
+    _action: _Action
 
-    def __init__(self, lines: [string] = None):
-        if lines is None:
-            self._action = None
-        else:
-            self._action = Lines(lines)
-
-    def find(self, name: string, root: string = ".") -> Pipe:
-        return self._pipe(Find(name, root))
+    def __init__(self, action: _Action):
+        self._action = action
 
     def grep(self, pattern: string, invert: bool = False) -> Pipe:
-        return self._pipe(Grep(self._action, pattern, invert))
+        """Grep for given pattern.
+
+        """
+
+        return self._pipe(_Grep(self._action, pattern, invert))
 
     def head(self, count: i64 = 10) -> Pipe:
-        return self._pipe(Head(self._action, count))
+        """Keep first lines.
+
+        """
+
+        return self._pipe(_Head(self._action, count))
 
     def tail(self, count: i64 = 10) -> Pipe:
-        return self._pipe(Tail(self._action, count))
+        """Keep last lines.
+
+        """
+
+        return self._pipe(_Tail(self._action, count))
 
     def sort(self) -> Pipe:
-        return self._pipe(Sort(self._action))
+        """Sort the lines alphabetically.
+
+        """
+
+        return self._pipe(_Sort(self._action))
 
     def reverse(self) -> Pipe:
-        return self._pipe(Reverse(self._action))
+        """Reverse lines order.
+
+        """
+
+        return self._pipe(_Reverse(self._action))
 
     def uniq(self) -> Pipe:
-        return self._pipe(Uniq(self._action))
+        """Remove duplicated lines.
+
+        """
+
+        return self._pipe(_Uniq(self._action))
 
     def collect(self) -> [string]:
+        """Collect all lines.
+
+        """
+
         return self._action.collect()
 
-    def _pipe(self, action: Action) -> Pipe:
+    def _pipe(self, action: _Action) -> Pipe:
         self._action = action
 
         return self
+
+def echo(lines: [string]) -> Pipe:
+    """Echo given lines.
+
+    """
+
+    return Pipe(_Echo(lines))
 
 def find(name: string, root: string = ".") -> Pipe:
     """Find files and folders in given path.
 
     """
-    
-    return Pipe().find(name, root)
+
+    return Pipe(_Find(name, root))
 
 @test
-def test_lines():
+def test_echo():
     lines = ["a", "b", "f", "a", "x"]
 
-    assert Pipe(lines).collect() == ["a", "b", "f", "a", "x"]
-    assert Pipe(lines).tail(3).collect() == ["f", "a", "x"]
-    assert Pipe(lines).uniq().collect() == ["a", "b", "f", "x"]
+    assert echo(lines).collect() == ["a", "b", "f", "a", "x"]
+    assert echo(lines).tail(3).collect() == ["f", "a", "x"]
+    assert echo(lines).uniq().collect() == ["a", "b", "f", "x"]
 
 @test
 def test_find():
