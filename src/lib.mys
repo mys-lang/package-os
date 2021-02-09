@@ -53,12 +53,6 @@ def _load_env() -> {string: string}:
 class OsError(Error):
     message: string
 
-def to_utf8(value: string) -> bytes:
-    value_utf8 = value.to_utf8()
-    value_utf8 += 0
-
-    return value_utf8
-
 def which(name: string) -> string:
     """Locate given command.
 
