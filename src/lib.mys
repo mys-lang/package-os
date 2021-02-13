@@ -174,13 +174,7 @@ class TextFile:
         self._binary_file.close()
 
     def read(self) -> string:
-        data = self._binary_file.read()
-        result = ""
-
-        for i in range(i64(len(data))):
-            result += char(i32(data[i]))
-
-        return result
+        return string(self._binary_file.read())
 
 def which(name: string) -> string:
     """Locate given command.
@@ -319,7 +313,7 @@ def readlink(path: string) -> string:
     raise NotImplementedError()
 
 def touch(path: string):
-    # ToDo: Use open().
+    # ToDo: Only update mtime if exists.
     path_utf8 = to_utf8(path)
 
     c"""
