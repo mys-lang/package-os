@@ -105,6 +105,10 @@ static void read_data(BinaryFile *binary_file_p)
 """
 
 class BinaryFile:
+    """A binary file.
+
+    """
+
     c"uv_fs_t m_request;"
     c"uv_buf_t m_buf;"
     c"char m_data[256];"
@@ -133,6 +137,11 @@ class BinaryFile:
         self.close()
 
     def close(self):
+        """Close the file. The file is closed automatically in the destructor
+        if not already closed.
+
+        """
+
         c"""
         if (m_file != -1) {
             uv_fs_close(uv_default_loop(), &m_request, m_file, NULL);
@@ -141,6 +150,10 @@ class BinaryFile:
         """
 
     def read(self) -> bytes:
+        """Read from the file.
+
+        """
+
         if self._fiber is not None:
             raise ValueError()
 
@@ -164,15 +177,28 @@ class BinaryFile:
         return self._data
 
 class TextFile:
+    """A text file.
+
+    """
+
     _binary_file: BinaryFile
 
     def __init__(self, path: string):
         self._binary_file = BinaryFile(path)
 
     def close(self):
+        """Close the file. The file is closed automatically in the destructor
+        if not already closed.
+
+        """
+
         self._binary_file.close()
 
     def read(self) -> string:
+        """Read from the file.
+
+        """
+
         return string(self._binary_file.read())
 
 def which(name: string) -> string:
