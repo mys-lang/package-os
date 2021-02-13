@@ -85,7 +85,7 @@ static void on_read_complete(uv_fs_t *request_p)
         resume(binary_file_p->_fiber);
     } else {
         for (int i = 0; i < request_p->result; i++) {
-            binary_file_p->_data += Char(binary_file_p->m_data[i]);
+            binary_file_p->_data += binary_file_p->m_data[i];
         }
 
         read_data(binary_file_p);
@@ -109,7 +109,7 @@ class BinaryFile:
     c"uv_buf_t m_buf;"
     c"char m_data[256];"
     c"uv_file m_file;"
-    _data: string
+    _data: bytes
     _fiber: Fiber
 
     def __init__(self, path: string):
@@ -141,12 +141,12 @@ class BinaryFile:
         }
         """
 
-    def read(self) -> string:
+    def read(self) -> bytes:
         if self._fiber is not None:
             raise ValueError()
 
         self._fiber = current()
-        self._data = ""
+        self._data = b""
 
         c"""
         m_buf = uv_buf_init(m_data, sizeof(m_data));
@@ -174,10 +174,11 @@ class TextFile:
         self._binary_file.close()
 
     def read(self) -> string:
+        data = self._binary_file.read()
         result = ""
 
-        for value in self._binary_file.read():
-            result += char(i32(value))
+        for i in range(i64(len(data))):
+            result += char(i32(data[i]))
 
         return result
 
