@@ -113,8 +113,7 @@ class BinaryFile:
     _fiber: Fiber
 
     def __init__(self, path: string):
-        path_utf8 = path.to_utf8()
-        path_utf8 += 0
+        path_utf8 = to_utf8(path)
         self._fiber = current()
 
         c"""
