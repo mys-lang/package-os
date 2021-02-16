@@ -64,13 +64,8 @@ static void on_open_complete(uv_fs_t *request_p)
     BinaryFile *binary_file_p = (BinaryFile *)(request_p->data);
 
     uv_fs_req_cleanup(request_p);
-
-    if (request_p->result < 0) {
-        fprintf(stderr, "error: %s\n", uv_strerror(request_p->result));
-    } else {
-        binary_file_p->m_file = request_p->result;
-        resume(binary_file_p->_fiber);
-    }
+    binary_file_p->m_file = request_p->result;
+    resume(binary_file_p->_fiber);
 }
 
 static void on_read_complete(uv_fs_t *request_p)
@@ -117,6 +112,10 @@ class BinaryFile:
     _fiber: Fiber
 
     def __init__(self, path: string):
+        """Opens given file.
+
+        """
+
         path_utf8 = to_utf8(path)
         self._fiber = current()
 
@@ -131,6 +130,17 @@ class BinaryFile:
         """
 
         suspend()
+        ok: bool = True
+
+        c"""
+        if (m_file < 0) {
+            ok = false;
+        }
+        """
+
+        if not ok:
+            raise OsError(f"failed to open '{path}'")
+
         self._fiber = None
 
     def __del__(self):
@@ -184,6 +194,10 @@ class TextFile:
     _binary_file: BinaryFile
 
     def __init__(self, path: string):
+        """Opens given file.
+
+        """
+
         self._binary_file = BinaryFile(path)
 
     def close(self):
@@ -562,3 +576,13 @@ def test_text_file():
     data = tf.read()
     assert "Os" in data
     tf.close()
+
+@test
+def test_text_file_does_not_exist():
+    try:
+        message = ""
+        TextFile("flapp.flopp")
+    except OsError as e:
+        message = e.message
+
+    assert message == "failed to open 'flapp.flopp'"
