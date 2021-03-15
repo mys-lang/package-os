@@ -26,6 +26,11 @@ static inline int chmod_wrapper(const char *name_p, u32 mode)
 {
     return chmod(name_p, mode);
 }
+
+static inline int system_wrapper(const char *command_p)
+{
+    return system(command_p);
+}
 """
 
 _ENV: {string: string} = _load_env()
@@ -481,6 +486,30 @@ def unsetenv(name: string):
 
     _ENV.pop(name, None)
 
+def system(command: string):
+    command_utf8 = to_utf8(command)
+    ok = True
+
+    c"""
+    if (system_wrapper((char *)command_utf8.m_bytes->data()) != 0) {
+        ok = false;
+    }
+    """
+
+    if not ok:
+        raise OsError(f"System command '{command}' failed.")
+
+def tar(archive: string,
+        extract: bool = False,
+        create: bool = False,
+        path: string = None):
+    if extract:
+        system(f"tar xf {archive}")
+    elif create:
+        system(f"tar czf {archive} {path}")
+    else:
+        raise OsError("No tar operation given.")
+
 @test
 def test_rm():
     rm("test_rm", recursive=True, force=True)
@@ -669,3 +698,25 @@ def test_text_file_does_not_exist():
         message = e.message
 
     assert message.starts_with("failed to open 'flapp.flopp': ")
+
+@test
+def test_system():
+    system("pwd")
+
+@test
+def test_tar():
+    rm("test_tar", recursive=True, force=True)
+    rm("test_tar.tar.gz", recursive=True, force=True)
+
+    # Create.
+    mkdir("test_tar")
+    BinaryFile("test_tar/hello.txt", "w").write(b"hi\n")
+    tar("test.tar.gz", create=True, path="test_tar")
+
+    # Extract.
+    rm("test_tar", recursive=True, force=True)
+    tar("test.tar.gz", extract=True)
+    assert BinaryFile("test_tar/hello.txt").read() == b"hi\n"
+
+    rm("test_tar", recursive=True, force=True)
+    rm("test_tar.tar.gz", recursive=True, force=True)
