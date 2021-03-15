@@ -97,6 +97,14 @@ static void read_data(BinaryFile *binary_file_p)
                -1,
                on_read_complete);
 }
+
+static void on_write_complete(uv_fs_t *request_p)
+{
+    BinaryFile *binary_file_p = (BinaryFile *)(request_p->data);
+
+    uv_fs_req_cleanup(request_p);
+    resume(binary_file_p->_fiber);
+}
 """
 
 class BinaryFile:
@@ -111,7 +119,7 @@ class BinaryFile:
     _data: bytes
     _fiber: Fiber
 
-    def __init__(self, path: string):
+    def __init__(self, path: string, mode: string = "r"):
         """Opens given file.
 
         """
@@ -121,25 +129,35 @@ class BinaryFile:
 
         c"""
         m_request.data = this;
+        int flags;
+
+        if (mode == String("r")) {
+            flags = O_RDONLY;
+        } else if (mode == String("w")) {
+            flags = O_WRONLY | O_CREAT | O_TRUNC;
+        } else {
+            flags = 0;
+        }
+
         uv_fs_open(uv_default_loop(),
                    &m_request,
                    (const char *)path_utf8.m_bytes->data(),
-                   O_RDONLY,
-                   0,
+                   flags,
+                   0664,
                    on_open_complete);
         """
 
         suspend()
-        ok: bool = True
+        message: string = None
 
         c"""
         if (m_file < 0) {
-            ok = false;
+            message = String(uv_strerror(m_file));
         }
         """
 
-        if not ok:
-            raise OsError(f"failed to open '{path}'")
+        if message is not None:
+            raise OsError(f"failed to open '{path}': {message}")
 
         self._fiber = None
 
@@ -165,7 +183,7 @@ class BinaryFile:
         """
 
         if self._fiber is not None:
-            raise ValueError()
+            raise OsError("Only one fiber can use the file.")
 
         self._fiber = current()
         self._data = b""
@@ -185,6 +203,31 @@ class BinaryFile:
         self._fiber = None
 
         return self._data
+
+    def write(self, data: bytes):
+        """Write to the file.
+
+        """
+
+        if self._fiber is not None:
+            raise OsError("Only one fiber can use the file.")
+
+        self._fiber = current()
+
+        c"""
+        m_buf = uv_buf_init((char *)data.m_bytes->data(),
+                            data.m_bytes->size());
+        uv_fs_write(uv_default_loop(),
+                    &m_request,
+                    m_file,
+                    &m_buf,
+                    1,
+                    -1,
+                    on_write_complete);
+        """
+
+        suspend()
+        self._fiber = None
 
 class TextFile:
     """A text file.
@@ -571,6 +614,46 @@ def test_binary_file():
     bf.close()
 
 @test
+def test_binary_file_not_found():
+    rm("test_binary_file_not_found.bin", force=True)
+
+    try:
+        ok = False
+        BinaryFile("test_binary_file_not_found.bin")
+    except OsError as e:
+        ok = True
+
+    assert ok
+
+    rm("test_binary_file_not_found.bin", force=True)
+
+@test
+def test_create_binary_file():
+    rm("test_create_binary_file.bin", force=True)
+
+    bf = BinaryFile("test_create_binary_file.bin", "w")
+    bf.close()
+
+    bf = BinaryFile("test_create_binary_file.bin")
+    assert bf.read() == b""
+
+    rm("test_create_binary_file.bin", force=True)
+
+@test
+def test_write_binary_file():
+    rm("test_write_binary_file.bin", force=True)
+
+    bf = BinaryFile("test_write_binary_file.bin", "w")
+    bf.write(b"123")
+    bf.close()
+
+    bf = BinaryFile("test_write_binary_file.bin")
+    assert bf.read() == b"123"
+    bf.close()
+
+    rm("test_write_binary_file.bin", force=True)
+
+@test
 def test_text_file():
     tf = TextFile("README.rst")
     data = tf.read()
@@ -585,4 +668,4 @@ def test_text_file_does_not_exist():
     except OsError as e:
         message = e.message
 
-    assert message == "failed to open 'flapp.flopp'"
+    assert message.starts_with("failed to open 'flapp.flopp': ")
