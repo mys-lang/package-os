@@ -502,9 +502,20 @@ def system(command: string):
 def tar(archive: string,
         extract: bool = False,
         create: bool = False,
+        strip_components: i64 = 0,
+        output_directory: string = None,
         path: string = None):
     if extract:
-        system(f"tar xf {archive}")
+        if path is None:
+            path = ""
+
+        if output_directory is None:
+            output_directory = ""
+        else:
+            output_directory = f"-C {output_directory}"
+
+        system(f"tar --strip-components={strip_components} -x -f {archive} "
+               f"{output_directory} {path}")
     elif create:
         system(f"tar czf {archive} {path}")
     else:
