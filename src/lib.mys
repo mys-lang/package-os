@@ -694,6 +694,20 @@ def test_write_binary_file():
     rm("test_write_binary_file.bin", force=True)
 
 @test
+def test_read_binary_file_with_slash_slash():
+    rm("test_read_binary_file_with_slash_slash.bin", force=True)
+
+    bf = BinaryFile("test_read_binary_file_with_slash_slash.bin", "w")
+    bf.write(b"123")
+    bf.close()
+
+    bf = BinaryFile("src///..//test_read_binary_file_with_slash_slash.bin")
+    assert bf.read() == b"123"
+    bf.close()
+
+    rm("test_read_binary_file_with_slash_slash.bin", force=True)
+
+@test
 def test_text_file():
     tf = TextFile("README.rst")
     data = tf.read()
