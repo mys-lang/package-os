@@ -93,4 +93,4 @@ def test_run_command_not_found():
     proc = run("mys-999")
     assert proc.exit_code != 0
     assert string(proc.stdout) == ""
-    assert "command not found" in string(proc.stderr)
+    assert "not found" in string(proc.stderr)
