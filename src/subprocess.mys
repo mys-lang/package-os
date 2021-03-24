@@ -1,0 +1,96 @@
+from .utils import to_utf8
+from . import OsError
+from fiber import suspend
+from fiber import current
+from fiber import Fiber
+
+c"""source-before-namespace
+#include "cpp/subprocess.hpp"
+"""
+
+c"""
+class RunData {
+public:
+    const char *command_p;
+    struct subprocess_result_t *result_p;
+    std::shared_ptr<Fiber> fiber;
+};
+
+static void run_work(uv_work_t *request_p)
+{
+    RunData *run_data_p = (RunData *)request_p->data;
+
+    run_data_p->result_p = subprocess_exec_output(run_data_p->command_p);
+}
+
+static void run_completed(uv_work_t *request_p, int status)
+{
+    RunData *run_data_p = (RunData *)request_p->data;
+
+    resume(run_data_p->fiber);
+}
+"""
+
+class CompletedProcess:
+    exit_code: i64
+    stdout: bytes
+    stderr: bytes
+
+def run(command: string) -> CompletedProcess:
+    """Run given command in a subprocess and return it's exit code and
+    output once completed.
+
+    """
+
+    command_utf8 = to_utf8(command)
+    completed_process = CompletedProcess(1, b"", b"")
+    ok = True
+
+    c"""
+    struct subprocess_result_t *result_p;
+    uv_work_t request;
+    RunData run_data;
+
+    run_data.command_p = (const char *)command_utf8.m_bytes->data();
+    run_data.result_p = NULL;
+    run_data.fiber = current();
+    request.data = &run_data;
+
+    uv_queue_work(uv_default_loop(), &request, run_work, run_completed);
+    suspend();
+
+    if (run_data.result_p != NULL) {
+        completed_process->exit_code = run_data.result_p->exit_code;
+
+        for (int i = 0; i < run_data.result_p->stdout.length; i++) {
+            completed_process->stdout += run_data.result_p->stdout.buf_p[i];
+        }
+
+        for (int i = 0; i < run_data.result_p->stderr.length; i++) {
+            completed_process->stderr += run_data.result_p->stderr.buf_p[i];
+        }
+
+        subprocess_result_free(run_data.result_p);
+    } else {
+        ok = false;
+    }
+    """
+
+    if not ok:
+        raise OsError("Subprocess could not be started.")
+
+    return completed_process
+
+@test
+def test_run():
+    proc = run("echo hej")
+    assert proc.exit_code == 0
+    assert string(proc.stdout) == "hej\n"
+    assert string(proc.stderr) == ""
+
+@test
+def test_run_command_not_found():
+    proc = run("mys-999")
+    assert proc.exit_code != 0
+    assert string(proc.stdout) == ""
+    assert "command not found" in string(proc.stderr)
