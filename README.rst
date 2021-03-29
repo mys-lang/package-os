@@ -3,6 +3,6 @@ Os
 
 OS utilities in the `Mys programming language`_.
 
-Documentation: https://mys-package-os.readthedocs.io/en/latest/
+Documentation: https://mys-lang.org/package/os/latest/index.html
 
-.. _Mys programming language: https://github.com/mys-lang/mys/
+.. _Mys programming language: https://mys-lang.org/
