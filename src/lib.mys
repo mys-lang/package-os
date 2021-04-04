@@ -423,6 +423,62 @@ def cd(path: string):
     if message is not None:
         raise OsError(message)
 
+def cp(src: string, dst: string, recursive: bool = False):
+    """Copy files and directories.
+
+    """
+
+    src_utf8 = to_utf8(src)
+    dst_utf8 = to_utf8(dst)
+    message: string = None
+
+    c"""
+    std::error_code ec;
+    std::filesystem::copy_options options;
+
+    if (recursive) {
+        options = std::filesystem::copy_options::recursive;
+    } else {
+        options = std::filesystem::copy_options::none;
+    }
+
+    std::filesystem::copy((char *)src_utf8.m_bytes->data(),
+                          (char *)dst_utf8.m_bytes->data(),
+                          options,
+                          ec);
+
+    if (ec) {
+        message = String(ec.message());
+    }
+    """
+
+    if message is not None:
+        raise OsError(message)
+
+def mv(src: string, dst: string):
+    """Move files and directories.
+
+    """
+
+    src_utf8 = to_utf8(src)
+    dst_utf8 = to_utf8(dst)
+    message: string = None
+
+    c"""
+    std::error_code ec;
+
+    std::filesystem::rename((char *)src_utf8.m_bytes->data(),
+                            (char *)dst_utf8.m_bytes->data(),
+                            ec);
+
+    if (ec) {
+        message = String(ec.message());
+    }
+    """
+
+    if message is not None:
+        raise OsError(message)
+
 def abspath(path: string) -> string:
     raise NotImplementedError()
 
@@ -628,6 +684,49 @@ def test_cd():
     exists("ccc/apa")
 
     rm("ccc", recursive=True, force=True)
+
+@test
+def test_cp():
+    rm("cp", recursive=True, force=True)
+    rm("cp-2", recursive=True, force=True)
+
+    mkdir("cp")
+    touch("cp/foo.txt")
+    touch("cp/bar.txt")
+    mkdir("cp/foo")
+    touch("cp/foo/fie.txt")
+
+    cp("cp", "cp-2", recursive=True)
+
+    assert exists("cp/foo.txt")
+    assert exists("cp/bar.txt")
+    assert exists("cp/foo/fie.txt")
+    assert exists("cp-2/foo.txt")
+    assert exists("cp-2/bar.txt")
+    assert exists("cp-2/foo/fie.txt")
+
+    rm("cp", recursive=True, force=True)
+    rm("cp-2", recursive=True, force=True)
+
+@test
+def test_mv():
+    rm("mv", recursive=True, force=True)
+    rm("mv-2", recursive=True, force=True)
+
+    mkdir("mv")
+    touch("mv/foo.txt")
+    touch("mv/bar.txt")
+    mkdir("mv/foo")
+    touch("mv/foo/fie.txt")
+
+    mv("mv", "mv-2")
+
+    assert not exists("mv")
+    assert exists("mv-2/foo.txt")
+    assert exists("mv-2/bar.txt")
+    assert exists("mv-2/foo/fie.txt")
+
+    rm("mv-2", recursive=True, force=True)
 
 @test
 def test_binary_file():
