@@ -460,24 +460,8 @@ def mv(src: string, dst: string):
 
     """
 
-    src_utf8 = to_utf8(src)
-    dst_utf8 = to_utf8(dst)
-    message: string = None
-
-    c"""
-    std::error_code ec;
-
-    std::filesystem::rename((char *)src_utf8.m_bytes->data(),
-                            (char *)dst_utf8.m_bytes->data(),
-                            ec);
-
-    if (ec) {
-        message = String(ec.message());
-    }
-    """
-
-    if message is not None:
-        raise OsError(message)
+    cp(src, dst, recursive=True)
+    rm(src, recursive=True, force=True)
 
 def abspath(path: string) -> string:
     raise NotImplementedError()
