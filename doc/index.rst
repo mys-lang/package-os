@@ -1,3 +1,5 @@
+|test|_
+
 Welcome to os package documentation!
 ====================================
 
@@ -15,6 +17,9 @@ Project
 
    modules
 
-.. _Mys programming language: https://mys.readthedocs.io/en/latest/
+.. |test| image:: https://github.com/mys-lang/package-os/actions/workflows/pythonpackage.yml/badge.svg
+.. _test: https://github.com/mys-lang/package-os/actions/workflows/pythonpackage.yml
+
+.. _Mys programming language: https://mys-lang.org
 
 .. _GitHub: https://github.com/mys-lang/package-os
