@@ -13,7 +13,7 @@ class RunData {
 public:
     const char *command_p;
     struct subprocess_result_t *result_p;
-    std::shared_ptr<Fiber> fiber;
+    mys::shared_ptr<Fiber> fiber;
 };
 
 static void run_work(uv_work_t *request_p)
