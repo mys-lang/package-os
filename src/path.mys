@@ -19,21 +19,49 @@ class Path:
         self._path = path
 
     def remove(self, recursive: bool = False, force: bool = False):
+        """Remove files and directories.
+
+        Give `recursive` as ``True`` to remove all files and folders
+        recursivly.
+
+        Give `force` as ``True`` to ignore errors.
+
+        """
+
         rm(self._path, recursive, force)
 
     def exists(self) -> bool:
+        """Returns True if the path exists in the file system, otherwise
+        False.
+
+        """
+
         return exists(self._path)
 
     def touch(self):
         touch(self._path)
 
     def mkdir(self, exists_ok: bool = False):
+        """Create directories.
+
+        Give `exists_ok` as ``True`` to ignore errors.
+
+        """
+
         mkdir(self._path, exists_ok)
 
     def open_binary(self, mode: string = "r") -> BinaryFile:
+        """Open as a binary file.
+
+        """
+
         return BinaryFile(self._path, mode)
 
     def open_text(self) -> TextFile:
+        """Open as a text file.
+
+        """
+
         return TextFile(self._path)
 
     def parent(self) -> Path:
