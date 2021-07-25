@@ -5,6 +5,8 @@ Welcome to os package documentation!
 
 OS utilities in the `Mys programming language`_.
 
+Project: https://github.com/mys-lang/package-os
+
 Project
 -------
 
