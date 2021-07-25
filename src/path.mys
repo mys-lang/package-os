@@ -1,0 +1,131 @@
+from os import exists
+from os import touch
+from os import rm
+from os import TextFile
+from os import BinaryFile
+
+class PathError(Error):
+    message: string
+
+class Path:
+    """A path in the file system.
+
+    """
+
+    _path: string
+
+    def __init__(self, path: string):
+        self._path = path
+
+    def remove(self):
+        rm(self._path)
+
+    def exists(self) -> bool:
+        return exists(self._path)
+
+    def touch(self):
+        touch(self._path)
+
+    def open_binary(self, mode: string = "r") -> BinaryFile:
+        return BinaryFile(self._path, mode)
+
+    def open_text(self) -> TextFile:
+        return TextFile(self._path)
+
+    def parent(self) -> Path:
+        """Returns the path of the parent directory.
+
+        """
+
+        parts = self._path.split('/')
+
+        if len(parts) == 1:
+            return Path(".")
+        else:
+            left: [string] = []
+
+            for part in slice(parts, 0, -1):
+                left.append(part)
+
+            return Path("/".join(left))
+
+    def name(self) -> string:
+        """Returns the file or directory name.
+
+        """
+
+        parts = self._path.split('/')
+
+        if len(parts) < 1:
+            raise PathError(f"{self._path} has no name")
+
+        return parts[-1]
+
+    def stem(self) -> string:
+        """Returns the file or directory stem (non-extension).
+
+        """
+
+        extension_length = len(self.extension())
+
+        if extension_length == 0:
+            return self.name()
+        else:
+            return self.name()[:-extension_length - 1]
+
+    def extension(self) -> string:
+        """Returns the file or directory extension.
+
+        """
+
+        parts = self.name().split('.')
+
+        if len(parts) <= 1:
+            return ""
+        elif len(parts) == 2:
+            if parts[0] == "":
+                return ""
+            else:
+                return parts[-1]
+        else:
+            return parts[-1]
+
+    def __eq__(self, other: Path) -> bool:
+        return self._path == str(other)
+
+    def __ne__(self, other: Path) -> bool:
+        return not (self == other)
+
+    def __str__(self) -> string:
+        return self._path
+
+@test
+def test_name():
+    assert Path("foo.txt").name() == "foo.txt"
+    assert Path("/foo/bar").name() == "bar"
+    assert Path(".bar").name() == ".bar"
+    assert Path("foo.tar.gz").name() == "foo.tar.gz"
+
+@test
+def test_extension():
+    assert Path("foo.txt").extension() == "txt"
+    assert Path("/foo/bar").extension() == ""
+    assert Path(".bar").extension() == ""
+    assert Path("..out").extension() == "out"
+    assert Path("foo.tar.gz").extension() == "gz"
+    assert Path("foo.tar.gz.").extension() == ""
+
+@test
+def test_stem():
+    assert Path("foo.txt").stem() == "foo"
+    assert Path("/foo/bar").stem() == "bar"
+    assert Path(".bar").stem() == ".bar"
+    assert Path("..out").stem() == "."
+    assert Path("foo.tar.gz").stem() == "foo.tar"
+    assert Path("foo.tar.gz.").stem() == "foo.tar.gz."
+
+@test
+def test_parent():
+    assert Path("foo.txt").parent() == Path(".")
+    assert Path("/foo/bar").parent() == Path("/foo")
+    assert Path("foo/bar/fie.o").parent() == Path("foo/bar")
