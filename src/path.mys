@@ -1,6 +1,7 @@
 from os import exists
 from os import touch
 from os import rm
+from os import mkdir
 from os import TextFile
 from os import BinaryFile
 
@@ -25,6 +26,9 @@ class Path:
 
     def touch(self):
         touch(self._path)
+
+    def mkdir(self):
+        mkdir(self._path)
 
     def open_binary(self, mode: string = "r") -> BinaryFile:
         return BinaryFile(self._path, mode)
