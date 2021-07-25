@@ -8,5 +8,6 @@ This package provides the following modules.
    :titlesonly:
 
    modules/lib
+   modules/path
    modules/shell
    modules/subprocess
