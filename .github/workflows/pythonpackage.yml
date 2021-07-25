@@ -36,7 +36,8 @@ jobs:
         python-version: 3.8
     - name: Install dependencies
       run: |
-        brew install autoconf automake libtool
+        brew install libuv
+        python -m pip install --upgrade pip
         pip install mys
     - name: Test
       run: |
