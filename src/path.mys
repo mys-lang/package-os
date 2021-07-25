@@ -18,8 +18,8 @@ class Path:
     def __init__(self, path: string):
         self._path = path
 
-    def remove(self):
-        rm(self._path)
+    def remove(self, recursive: bool = False, force: bool = False):
+        rm(self._path, recursive, force)
 
     def exists(self) -> bool:
         return exists(self._path)
@@ -27,8 +27,8 @@ class Path:
     def touch(self):
         touch(self._path)
 
-    def mkdir(self):
-        mkdir(self._path)
+    def mkdir(self, exists_ok: bool = False):
+        mkdir(self._path, exists_ok)
 
     def open_binary(self, mode: string = "r") -> BinaryFile:
         return BinaryFile(self._path, mode)
