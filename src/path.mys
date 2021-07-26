@@ -104,6 +104,9 @@ class Path:
 
             return Path("/".join(left))
 
+    def join(self, other: Path) -> Path:
+        return Path(f"{self._path}/{other}")
+    
     def name(self) -> string:
         """Returns the file or directory name.
 
@@ -212,3 +215,7 @@ def test_mkdir():
         message = e.message
 
     assert message == "File exists"
+
+@test
+def test_join():
+    assert Path("a").join(Path("b")) == Path("a/b")
