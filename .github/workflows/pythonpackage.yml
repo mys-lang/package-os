@@ -22,7 +22,7 @@ jobs:
     - name: Test
       run: |
         mys test
-        mys -C examples/path run
+        mys -C examples/files_and_folders run
 
   macos:
 

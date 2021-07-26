@@ -404,7 +404,48 @@ def touch(path: string):
     """
 
 def basename(path: string) -> string:
-    raise NotImplementedError()
+    """Returns the leaf file or directory name.
+
+    """
+
+    if path.ends_with("/"):
+        path = path[:-1]
+
+    parts = path.split('/')
+
+    if len(parts) < 1:
+        raise OsError(f"{path} has no name")
+
+    return parts[-1]
+
+def stem(path: string) -> string:
+    """Returns the leaf file or directory stem (non-extension).
+
+    """
+
+    extension_length = len(extension(path))
+
+    if extension_length == 0:
+        return basename(path)
+    else:
+        return basename(path)[:-extension_length - 1]
+
+def extension(path: string) -> string:
+    """Returns the leaf file or directory extension.
+
+    """
+
+    parts = basename(path).split('.')
+
+    if len(parts) <= 1:
+        return ""
+    elif len(parts) == 2:
+        if parts[0] == "":
+            return ""
+        else:
+            return parts[-1]
+    else:
+        return parts[-1]
 
 def cd(path: string):
     path_utf8 = to_utf8(path)
@@ -807,3 +848,29 @@ def test_tar():
 
     rm("test_tar", recursive=True, force=True)
     rm("test_tar.tar.gz", recursive=True, force=True)
+
+@test
+def test_basename():
+    assert basename("foo.txt") == "foo.txt"
+    assert basename("/foo/bar") == "bar"
+    assert basename(".bar") == ".bar"
+    assert basename("foo.tar.gz") == "foo.tar.gz"
+    assert basename("a/b/") == "b"
+
+@test
+def test_stem():
+    assert stem("foo.txt") == "foo"
+    assert stem("/foo/bar") == "bar"
+    assert stem(".bar") == ".bar"
+    assert stem("..out") == "."
+    assert stem("foo.tar.gz") == "foo.tar"
+    assert stem("foo.tar.gz.") == "foo.tar.gz."
+
+@test
+def test_extension():
+    assert extension("foo.txt") == "txt"
+    assert extension("/foo/bar") == ""
+    assert extension(".bar") == ""
+    assert extension("..out") == "out"
+    assert extension("foo.tar.gz") == "gz"
+    assert extension("foo.tar.gz.") == ""
