@@ -51,7 +51,7 @@ An example of how to use environment variables.
        for name in slice(env().keys(), 0, 5):
            print(name)
 
-Functions and types
--------------------
+API
+---
 
 .. mysfile:: src/lib.mys

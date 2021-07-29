@@ -18,7 +18,7 @@ lines.
        print(find("*").grep("x", invert=True).collect())
        print(Pipe(["b", "b", "a"]).uniq().sort().collect())
 
-Functions and types
--------------------
+API
+---
 
 .. mysfile:: src/shell.mys

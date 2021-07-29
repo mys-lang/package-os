@@ -12,7 +12,7 @@ Example
        proc = run("ls")
        print(proc)
 
-Functions and types
--------------------
+API
+---
 
 .. mysfile:: src/subprocess.mys
