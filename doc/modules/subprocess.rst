@@ -4,7 +4,7 @@ subprocess -- Subprocess management
 Example
 -------
 
-.. code-block:: python
+.. code-block:: mys
 
    from os.subprocess import run
 

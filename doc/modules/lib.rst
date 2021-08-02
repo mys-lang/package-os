@@ -7,7 +7,7 @@ the operating system.
 Files and folders example
 -------------------------
 
-.. code-block:: python
+.. code-block:: mys
 
    from os import cd
    from os import cwd
@@ -37,7 +37,7 @@ Environment variables example
 
 An example of how to use environment variables.
 
-.. code-block:: python
+.. code-block:: mys
 
    from os import env
    from os import setenv

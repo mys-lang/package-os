@@ -9,7 +9,7 @@ lines.
 
 .. note:: Maybe remove this module if/when iterators are implemented.
 
-.. code-block:: python
+.. code-block:: mys
 
    from os.shell import find
    from os.shell import Pipe
