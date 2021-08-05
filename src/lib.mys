@@ -54,6 +54,13 @@ class Stdout:
 
         c"putchar(value);"
 
+    def flush(self):
+        """Flush output buffer.
+
+        """
+
+        c"fflush(stdout);"
+
 STDIN: Stdin = Stdin()
 STDOUT: Stdout = Stdout()
 
