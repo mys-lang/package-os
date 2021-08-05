@@ -1,0 +1,10 @@
+from os.tty import set_to_cbreak_mode
+from os import STDIN
+# ToDo: Should not be needed.
+from os import Stdin
+
+def main():
+    set_to_cbreak_mode(0)
+
+    while True:
+        print(f"Got '{char(i32(STDIN.get()))}'.")
