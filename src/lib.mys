@@ -30,6 +30,33 @@ static inline int chmod_wrapper(const char *name_p, u32 mode)
 }
 """
 
+class Stdin:
+
+    def get(self) -> u8:
+        """Returns the next byte from the standard input (stdin).
+
+        """
+
+        value: u8 = 0
+
+        c"""
+        value = getchar();
+        """
+
+        return value
+
+class Stdout:
+
+    def put(self, value: u8):
+        """Writes a byte to the standard output (stdout).
+
+        """
+
+        c"putchar(value);"
+
+STDIN: Stdin = Stdin()
+STDOUT: Stdout = Stdout()
+
 _ENV: {string: string} = _load_env()
 
 def _load_env() -> {string: string}:
