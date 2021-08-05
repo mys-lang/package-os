@@ -1,0 +1,77 @@
+from . import OsError
+
+c"""source-before-namespace
+#include <termios.h>
+"""
+
+def set_to_raw_mode(fd: i64):
+    """Set the mode of given file descriptor to raw.
+
+    """
+
+    ok = False
+
+    c"""
+    struct termios mode;
+
+    if (tcgetattr(fd, &mode) == 0) {
+        mode.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+        mode.c_oflag &= ~(OPOST);
+        mode.c_cflag &= ~(CSIZE | PARENB);
+        mode.c_cflag |= CS8;
+        mode.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+        mode.c_cc[VMIN] = 1;
+        mode.c_cc[VTIME] = 0;
+
+        if (tcsetattr(fd, TCSAFLUSH, &mode) == 0) {
+            ok = true;
+        }
+    }
+    """
+
+    if not ok:
+        raise OsError(f"Failed to set fd {fd} to raw mode.")
+
+def set_to_cbreak_mode(fd: i64):
+    """Set the mode of given file descriptor to cbreak.
+
+    """
+
+    ok = False
+
+    c"""
+    struct termios mode;
+
+    if (tcgetattr(fd, &mode) == 0) {
+        mode.c_lflag &= ~(ECHO | ICANON);
+        mode.c_cc[VMIN] = 1;
+        mode.c_cc[VTIME] = 0;
+
+        if (tcsetattr(fd, TCSAFLUSH, &mode) == 0) {
+            ok = true;
+        }
+    }
+    """
+
+    if not ok:
+        raise OsError(f"Failed to set fd {fd} to cbreak mode.")
+
+@test
+def test_set_to_raw_mode_bad_fd():
+    try:
+        message = ""
+        set_to_raw_mode(-1)
+    except OsError as err:
+        message = err.message
+
+    assert message == "Failed to set fd -1 to raw mode."
+
+@test
+def test_set_to_cbreak_mode_bad_fd():
+    try:
+        message = ""
+        set_to_cbreak_mode(-1)
+    except OsError as err:
+        message = err.message
+
+    assert message == "Failed to set fd -1 to cbreak mode."
