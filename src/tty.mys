@@ -58,6 +58,10 @@ def set_to_cbreak_mode(fd: i64):
         raise OsError(f"Failed to set fd {fd} to cbreak mode.")
 
 def is_tty(fd: i64) -> bool:
+    """Returns True if given file descriptor is a TTY, False otherwise.
+
+    """
+
     tty: bool = False
 
     c"""
