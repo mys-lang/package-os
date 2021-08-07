@@ -23,6 +23,7 @@ jobs:
       run: |
         mys test
         mys -C examples/files_and_folders run
+        mys -C examples/tty build
 
   macos:
 

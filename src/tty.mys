@@ -2,6 +2,7 @@ from . import OsError
 
 c"""source-before-namespace
 #include <termios.h>
+#include <unistd.h>
 """
 
 def set_to_raw_mode(fd: i64):
@@ -56,6 +57,15 @@ def set_to_cbreak_mode(fd: i64):
     if not ok:
         raise OsError(f"Failed to set fd {fd} to cbreak mode.")
 
+def is_tty(fd: i64) -> bool:
+    tty: bool = False
+
+    c"""
+    tty = (isatty(fd) == 1);
+    """
+
+    return tty
+
 @test
 def test_set_to_raw_mode_bad_fd():
     try:
@@ -75,3 +85,7 @@ def test_set_to_cbreak_mode_bad_fd():
         message = err.message
 
     assert message == "Failed to set fd -1 to cbreak mode."
+
+@test
+def test_is_tty():
+    assert not is_tty(-1)

@@ -11,6 +11,7 @@ c"""source-before-namespace
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <stdio.h>
 
 extern char **environ;
 
@@ -32,15 +33,20 @@ static inline int chmod_wrapper(const char *name_p, u32 mode)
 
 class Stdin:
 
-    def get(self) -> u8:
-        """Returns the next byte from the standard input (stdin).
+    def get(self) -> i32:
+        """Returns the next byte from standard input (stdin), or -1 if end of
+        input is reached.
 
         """
 
-        value: u8 = 0
+        value: i32 = 0
 
         c"""
         value = getchar();
+
+        if (value == EOF) {
+            value = -1;
+        }
         """
 
         return value
@@ -48,7 +54,7 @@ class Stdin:
 class Stdout:
 
     def put(self, value: u8):
-        """Writes a byte to the standard output (stdout).
+        """Writes given byte to standard output (stdout).
 
         """
 
