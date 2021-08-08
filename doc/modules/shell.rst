@@ -1,5 +1,5 @@
-shell -- Shell-like commands
-============================
+os.shell -- Shell-like commands
+===============================
 
 Example
 -------

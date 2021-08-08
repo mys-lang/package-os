@@ -1,5 +1,5 @@
-subprocess -- Subprocess management
-===================================
+os.subprocess -- Subprocess management
+======================================
 
 Example
 -------

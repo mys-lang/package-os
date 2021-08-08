@@ -1,5 +1,5 @@
-tty -- Terminal control functions
-=================================
+os.tty -- Terminal control functions
+====================================
 
 Example
 -------

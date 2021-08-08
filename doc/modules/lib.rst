@@ -1,5 +1,5 @@
-lib -- OS utilities
-===================
+os -- OS utilities
+==================
 
 This modules provides various functions adn types that are close to
 the operating system.
