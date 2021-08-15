@@ -1,8 +1,8 @@
-from .utils import to_utf8
-from . import OsError
-from fiber import suspend
-from fiber import current
 from fiber import Fiber
+from fiber import current
+from fiber import suspend
+from . import OsError
+from .utils import to_utf8
 
 c"""source-before-namespace
 #include "cpp/subprocess.hpp"
