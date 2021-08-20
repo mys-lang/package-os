@@ -162,7 +162,7 @@ class BinaryFile:
     _fiber: Fiber
 
     def __init__(self, path: string, mode: string = "r"):
-        """Opens given file.
+        """Opens given file. Mode can be `r` or `w`.
 
         """
 
@@ -278,12 +278,12 @@ class TextFile:
 
     _binary_file: BinaryFile
 
-    def __init__(self, path: string):
-        """Opens given file.
+    def __init__(self, path: string, mode: string = "r"):
+        """Opens given file. Mode can be `r` or `w`.
 
         """
 
-        self._binary_file = BinaryFile(path)
+        self._binary_file = BinaryFile(path, mode)
 
     def close(self):
         """Close the file. The file is closed automatically in the destructor
@@ -299,6 +299,13 @@ class TextFile:
         """
 
         return string(self._binary_file.read())
+
+    def write(self, data: string):
+        """Write to the file.
+
+        """
+
+        self._binary_file.write(data.to_utf8())
 
 def which(name: string) -> string:
     """Locate given command.
@@ -628,35 +635,37 @@ def tar(archive: string,
 
 @test
 def test_rm():
-    rm("test_rm", recursive=True, force=True)
-    mkdir("test_rm")
-    rm("test_rm", recursive=True)
-    mkdir("test_rm/foo/bar", exists_ok=True)
+    directory = "test_rm"
+    rm(directory, recursive=True, force=True)
+    mkdir(directory)
+    rm(directory, recursive=True)
+    mkdir(f"{directory}/foo/bar", exists_ok=True)
 
     try:
         message = ""
-        rm("test_rm")
+        rm(directory)
     except OsError as e:
         message = e.message
 
     assert message == "Directory not empty"
 
-    rm("test_rm", recursive=True)
+    rm(directory, recursive=True)
 
 @test
 def test_rm_single_file():
-    touch("test_rm_single_file")
-    rm("test_rm_single_file")
+    filename = "test_rm_single_file"
+    touch(filename)
+    rm(filename)
 
     try:
         message = ""
-        rm("test_rm_single_file")
+        rm(filename)
     except OsError as e:
         message = e.message
 
     assert message == "No such file or directory"
 
-    rm("test_rm_single_file", force=True)
+    rm(filename, force=True)
 
 @test
 def test_env_get_pwd():
@@ -709,20 +718,22 @@ def test_which():
 
 @test
 def test_cwd():
-    mkdir("cmd", exists_ok=True)
-    cd("cmd")
-    assert cwd().ends_with("cmd")
+    directory = "cmd"
+    mkdir(directory, exists_ok=True)
+    cd(directory)
+    assert cwd().ends_with(directory)
     cd("..")
-    rm("cmd")
+    rm(directory)
 
 @test
 def test_mkdir():
-    rm("adir", force=True)
-    mkdir("adir", exists_ok=True)
+    directory = "adir"
+    rm(directory, force=True)
+    mkdir(directory, exists_ok=True)
 
     try:
         message = ""
-        mkdir("adir")
+        mkdir(directory)
     except OsError as e:
         message = e.message
 
@@ -803,49 +814,53 @@ def test_binary_file():
 
 @test
 def test_binary_file_not_found():
-    rm("test_binary_file_not_found.bin", force=True)
+    filename = "test_binary_file_not_found.bin"
+    rm(filename, force=True)
 
     try:
         ok = False
-        BinaryFile("test_binary_file_not_found.bin")
+        BinaryFile(filename)
     except OsError as e:
         ok = True
 
     assert ok
 
-    rm("test_binary_file_not_found.bin", force=True)
+    rm(filename, force=True)
 
 @test
 def test_create_binary_file():
-    rm("test_create_binary_file.bin", force=True)
+    filename = "test_create_binary_file.bin"
+    rm(filename, force=True)
 
-    bf = BinaryFile("test_create_binary_file.bin", "w")
+    bf = BinaryFile(filename, "w")
     bf.close()
 
-    bf = BinaryFile("test_create_binary_file.bin")
+    bf = BinaryFile(filename)
     assert bf.read() == b""
 
-    rm("test_create_binary_file.bin", force=True)
+    rm(filename, force=True)
 
 @test
 def test_write_binary_file():
-    rm("test_write_binary_file.bin", force=True)
+    filename = "test_write_binary_file.bin"
+    rm(filename, force=True)
 
-    bf = BinaryFile("test_write_binary_file.bin", "w")
+    bf = BinaryFile(filename, "w")
     bf.write(b"123")
     bf.close()
 
-    bf = BinaryFile("test_write_binary_file.bin")
+    bf = BinaryFile(filename)
     assert bf.read() == b"123"
     bf.close()
 
-    rm("test_write_binary_file.bin", force=True)
+    rm(filename, force=True)
 
 @test
 def test_read_binary_file_with_slash_slash():
-    rm("test_read_binary_file_with_slash_slash.bin", force=True)
+    filename = "test_read_binary_file_with_slash_slash.bin"
+    rm(filename, force=True)
 
-    bf = BinaryFile("test_read_binary_file_with_slash_slash.bin", "w")
+    bf = BinaryFile(filename, "w")
     bf.write(b"123")
     bf.close()
 
@@ -853,7 +868,7 @@ def test_read_binary_file_with_slash_slash():
     assert bf.read() == b"123"
     bf.close()
 
-    rm("test_read_binary_file_with_slash_slash.bin", force=True)
+    rm(filename, force=True)
 
 @test
 def test_text_file():
@@ -861,6 +876,21 @@ def test_text_file():
     data = tf.read()
     assert "Os" in data
     tf.close()
+
+@test
+def test_write_text_file():
+    filename = "test_write_text_file.txt"
+    rm(filename, force=True)
+
+    tf = TextFile(filename, "w")
+    tf.write("123")
+    tf.close()
+
+    tf = TextFile(filename)
+    assert tf.read() == "123"
+    tf.close()
+
+    rm(filename, force=True)
 
 @test
 def test_text_file_does_not_exist():
@@ -874,21 +904,24 @@ def test_text_file_does_not_exist():
 
 @test
 def test_tar():
-    rm("test_tar", recursive=True, force=True)
-    rm("test_tar.tar.gz", recursive=True, force=True)
+    directory = "test_tar"
+    archive = "test_tar.tar.gz"
+
+    rm(directory, recursive=True, force=True)
+    rm(archive, recursive=True, force=True)
 
     # Create.
-    mkdir("test_tar")
+    mkdir(directory)
     BinaryFile("test_tar/hello.txt", "w").write(b"hi\n")
-    tar("test.tar.gz", create=True, path="test_tar")
+    tar(archive, create=True, path=directory)
 
     # Extract.
-    rm("test_tar", recursive=True, force=True)
-    tar("test.tar.gz", extract=True)
+    rm(directory, recursive=True, force=True)
+    tar(archive, extract=True)
     assert BinaryFile("test_tar/hello.txt").read() == b"hi\n"
 
-    rm("test_tar", recursive=True, force=True)
-    rm("test_tar.tar.gz", recursive=True, force=True)
+    rm(directory, recursive=True, force=True)
+    rm(archive, recursive=True, force=True)
 
 @test
 def test_basename():
