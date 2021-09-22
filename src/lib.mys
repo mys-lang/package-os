@@ -307,14 +307,14 @@ class TextFile:
 
         self._binary_file.write(data.to_utf8())
 
-def which(name: string) -> string:
-    """Locate given command.
+def which(executable: string) -> string:
+    """Locate given executable.
 
     """
 
     # Obviously not perfect...
     for path in getenv("PATH").split(":"):
-        full_path = f"{path}/{name}"
+        full_path = f"{path}/{executable}"
 
         if exists(full_path):
             return full_path
@@ -324,8 +324,23 @@ def which(name: string) -> string:
 def ln(src_path: string, dst_path: string):
     raise NotImplementedError()
 
-def ls(path: string) -> [string]:
-    raise NotImplementedError()
+def ls(path: string = ".") -> [string]:
+    """Returns all files and folders in given directory.
+
+    """
+
+    path_utf8 = to_utf8(path)
+    entries: [string] = []
+
+    c"""
+    char *path_p = (char *)path_utf8.m_bytes->data();
+
+    for (const auto& entry : std::filesystem::directory_iterator(path_p)) {
+        entries->append(entry.path().filename().c_str());
+    }
+    """
+
+    return entries
 
 def rm(path: string, recursive: bool = False, force: bool = False):
     """Remove files and directories.
@@ -715,6 +730,33 @@ def test_chmod():
 def test_which():
     assert which("mys-xyz123") is None
     assert which("ls") is not None
+
+@test
+def test_ls():
+    directory = "ls"
+    rm(directory, recursive=True, force=True)
+    mkdir(directory)
+    mkdir(f"{directory}/a")
+    mkdir(f"{directory}/b")
+    touch(f"{directory}/c")
+
+    entries = ls(directory)
+
+    assert len(entries) == 3
+    assert "a" in entries
+    assert "b" in entries
+    assert "c" in entries
+
+    cd(directory)
+    entries = ls()
+
+    assert len(entries) == 3
+    assert "a" in entries
+    assert "b" in entries
+    assert "c" in entries
+
+    cd("..")
+    rm(directory, recursive=True, force=True)
 
 @test
 def test_cwd():

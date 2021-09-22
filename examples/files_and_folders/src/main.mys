@@ -1,6 +1,7 @@
 from os import cd
 from os import cwd
 from os import exists
+from os import ls
 from os import mkdir
 from os import rm
 from os import touch
@@ -18,5 +19,6 @@ def main():
     if exists("bar"):
         print("bar exists")
 
+    print(f"Files:", ls())
     cd("..")
     rm("foo", recursive=True, force=True)
