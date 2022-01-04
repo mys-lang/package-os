@@ -73,7 +73,7 @@ STDOUT: Stdout = Stdout()
 _ENV: {string: string} = _load_env()
 
 def _load_env() -> {string: string}:
-    variables: {string: string} = {}
+    variables = {}
     line: string = None
 
     c"""
