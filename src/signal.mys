@@ -1,0 +1,26 @@
+c"""source-before-namespace
+#include <csignal>
+"""
+
+@enum
+class Signal:
+    Terminate = c"SIGTERM"
+    Interrupt = c"SIGINT"
+
+def enable(signal: Signal):
+    """Enable given signal.
+
+    """
+
+    c"""
+    mys::enable_signal(signal);
+    """
+
+def disable(signal: Signal):
+    """Disable given signal.
+
+    """
+
+    c"""
+    mys::disable_signal(signal);
+    """

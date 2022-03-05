@@ -1,0 +1,13 @@
+from fiber import sleep
+from os.signal import enable
+from os.signal import Signal
+
+def main():
+    enable(Signal.Interrupt)
+
+    print("Press Ctrl-C to exit.")
+
+    try:
+        sleep(3600.0)
+    except InterruptError:
+        print("Interrupted!")
