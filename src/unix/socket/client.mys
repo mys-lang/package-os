@@ -1,0 +1,275 @@
+from fiber import CancelledError
+from fiber import Fiber
+from fiber import current
+from fiber import suspend
+from io.reader import Reader
+from ... import OsError
+
+c"""
+class WriteRequest {
+public:
+    uv_buf_t m_buf;
+    uv_write_t m_request;
+    Bytes m_data;
+    Client *m_client;
+};
+
+static void on_connect_complete(uv_connect_t *request_p, int status)
+{
+    Client *client_p = (Client *)(request_p->data);
+
+    client_p->_status = status;
+    resume(client_p->_fiber);
+}
+
+static void on_read_complete(uv_stream_t *request_p,
+                             ssize_t nread,
+                             const uv_buf_t* buf_p)
+{
+    Client *client_p = (Client *)(request_p->data);
+    bool completed = false;
+
+    if (nread > 0) {
+        client_p->_read_offset += nread;
+
+        if (client_p->_read_offset == client_p->_read_data.m_bytes->size()) {
+            completed = true;
+        }
+    } else if (nread < 0) {
+        completed = true;
+        client_p->_read_data.m_bytes->resize(client_p->_read_offset);
+        client_p->_connected = false;
+    }
+
+    if (completed) {
+        uv_read_stop(request_p);
+        resume(client_p->_fiber);
+    }
+}
+
+static void read_alloc(uv_handle_t *handle_p, size_t size, uv_buf_t *buf_p)
+{
+    Client *client_p = (Client *)(handle_p->data);
+
+    buf_p->base = ((char *)client_p->_read_data.m_bytes->data()
+                   + client_p->_read_offset);
+    buf_p->len = client_p->_read_data.m_bytes->size() - client_p->_read_offset;
+}
+
+static void on_write_complete(uv_write_t *request_p, int status)
+{
+    WriteRequest *write_request_p = (WriteRequest *)(request_p->data);
+
+    if (status != 0) {
+        write_request_p->m_client->_connected = false;
+    }
+
+    delete write_request_p;
+}
+
+static void on_getaddrinfo_complete(uv_getaddrinfo_t *resolver_p,
+                                    int status,
+                                    struct addrinfo *info_p)
+{
+    Client *client_p = (Client *)(resolver_p->data);
+
+    if (status < 0) {
+        fprintf(stderr, "getaddrinfo callback error %s\n", uv_err_name(status));
+        return;
+    }
+
+    client_p->m_connect.data = client_p;
+    uv_tcp_connect(&client_p->m_connect,
+                   &client_p->m_socket,
+                   (const struct sockaddr*)info_p->ai_addr,
+                   on_connect_complete);
+    uv_freeaddrinfo(info_p);
+}
+
+static void on_close_complete(uv_handle_t *handle_p)
+{
+    Client *client_p = (Client *)(handle_p->data);
+
+    resume(client_p->_fiber);
+}
+
+static void on_shutdown_complete(uv_shutdown_t *request_p, int status)
+{
+    Client *client_p = (Client *)(request_p->data);
+
+    uv_close((uv_handle_t*)&client_p->m_socket, on_close_complete);
+}
+"""
+
+class Client(Reader):
+    c"""
+    uv_tcp_t m_socket;
+    uv_connect_t m_connect;
+    struct addrinfo m_hints;
+    uv_getaddrinfo_t m_resolver;
+    uv_buf_t m_buf;
+    uv_shutdown_t m_shutdown;
+    """
+    _read_data: bytes
+    _read_offset: u64
+    _fiber: Fiber
+    _status: i32
+    _connected: bool
+
+    def __init__(self):
+        c"""
+        m_socket.data = this;
+        m_shutdown.data = this;
+        """
+
+        self._fiber = None
+        self._connected = False
+
+    def __del__(self):
+        self.disconnect()
+
+    def _ensure_one_caller(self):
+        if self._fiber is not None:
+            raise OsError("Only one fiber may perform blocking operations.")
+
+    def _wait_for_completion(self):
+        self._fiber = current()
+        suspend()
+        self._fiber = None
+
+    def is_connected(self) -> bool:
+        """Returns true if conencted to the server, false otherwise.
+
+        """
+
+        return self._connected
+
+    def connect(self, path: string):
+        """Connect to a server using given `path`.
+
+        """
+
+        if self._connected:
+            raise OsError("Already connected.")
+
+        self._ensure_one_caller()
+
+        path_utf8 = path.to_utf8()
+        path_utf8 += 0
+
+        c"""
+        //uv_tcp_init(uv_default_loop(), &m_socket);
+        //m_resolver.data = this;
+        //
+        //m_hints.ai_family = PF_INET;
+        //m_hints.ai_socktype = SOCK_STREAM;
+        //m_hints.ai_protocol = IPPROTO_TCP;
+        //m_hints.ai_flags = 0;
+        //
+        //uv_getaddrinfo(uv_default_loop(),
+        //               &m_resolver,
+        //               on_getaddrinfo_complete,
+        //               (const char *)host_utf8.m_bytes->data(),
+        //               (const char *)port_utf8.m_bytes->data(),
+        //               &m_hints);
+        """
+
+        self._wait_for_completion()
+
+        if self._status != 0:
+            raise OsError("Connect failed.")
+
+        self._connected = True
+
+    def disconnect(self):
+        """Disconnect from the server.
+
+        """
+
+        if not self._connected:
+            return
+
+        self._ensure_one_caller()
+
+        c"""
+        uv_shutdown(&m_shutdown, (uv_stream_t *)&m_socket, on_shutdown_complete);
+        """
+
+        self._wait_for_completion()
+        self._connected = False
+
+    def write(self, data: bytes):
+        """Write data to the server. Never blocks.
+
+        """
+
+        if not self._connected:
+            return
+
+        c"""
+        WriteRequest *request_p = new WriteRequest();
+        request_p->m_buf = uv_buf_init((char *)data.m_bytes->data(),
+                                       data.m_bytes->size());
+        request_p->m_request.data = request_p;
+        request_p->m_data = data;
+        request_p->m_client = this;
+        uv_write(&request_p->m_request,
+                 (uv_stream_s *)&m_socket,
+                 &request_p->m_buf,
+                 1,
+                 on_write_complete);
+        """
+
+    def read(self, size: u64) -> bytes:
+        """Read data from the server. Always returns size number of bytes,
+        unless the connection was closed, in which case the remaining
+        data is returned.
+
+        """
+
+        if not self._connected:
+            return b""
+
+        self._ensure_one_caller()
+
+        self._read_offset = 0;
+        self._read_data = bytes(size)
+
+        c"""
+        uv_read_start((uv_stream_t *)&m_socket, read_alloc, on_read_complete);
+        """
+
+        self._fiber = current()
+
+        try:
+            suspend()
+        except CancelledError:
+            c"uv_read_stop((uv_stream_t *)&m_socket);"
+            self._read_data = None
+            raise
+        finally:
+            self._fiber = None
+
+        data = self._read_data
+        self._read_data = None
+
+        return data
+
+    def read_into(self, data: bytes, start: u64, size: u64) -> u64:
+        """Read given number of bytes into given buffer. Always returns size
+        number of bytes, unless the connection was closed, in which
+        case the remaining number of bytes is returned.
+
+        """
+
+        raise NotImplementedError()
+
+    def try_read_into(self, data: bytes, start: u64, size: u64) -> u64:
+        """Try to read given number of bytes into given buffer. Returns number
+        of read bytes, which is at least one and at most given size
+        bytes, unless the connection was closed, in which case the
+        remaining number of bytes is returned.
+
+        """
+
+        raise NotImplementedError()
