@@ -3,6 +3,3 @@ name = "os"
 version = "0.46.0"
 authors = ["Erik Moqvist <erik.moqvist@gmail.com>"]
 description = "OS utilities."
-
-[dependencies]
-io = "latest"

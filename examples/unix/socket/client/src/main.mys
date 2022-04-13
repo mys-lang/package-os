@@ -1,8 +1,0 @@
-from os.unix.socket.client import Client
-
-def main():
-    client = Client()
-    client.connect("/tmp/mys-os-unix-socket-example.sock")
-    client.write(b"hi!")
-    print(client.read(3))
-    client.disconnect()
