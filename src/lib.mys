@@ -10,6 +10,7 @@ c"""source-before-namespace
 #include <cstdlib>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -647,6 +648,29 @@ def tar(archive: string,
         run(f"tar czf {archive} {path}")
     else:
         raise OsError("No tar operation given.")
+
+def nproc(all: bool = False, ignore: i64 = 0) -> i64:
+    """Get the number of processing units available.
+
+    """
+
+    count = 0
+
+    if all:
+        c"count = sysconf(_SC_NPROCESSORS_CONF);"
+    else:
+        c"count = sysconf(_SC_NPROCESSORS_ONLN);"
+
+    count -= ignore
+
+    return max(1, count)
+
+@test
+def test_nproc():
+    assert nproc() > 0
+    assert nproc(all=True) >= nproc()
+    assert nproc(ignore=1) in [1, nproc() - 1]
+    assert nproc(ignore=nproc()) == 1
 
 @test
 def test_rm():
