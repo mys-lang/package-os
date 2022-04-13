@@ -661,6 +661,9 @@ def nproc(all: bool = False, ignore: i64 = 0) -> i64:
     else:
         c"count = sysconf(_SC_NPROCESSORS_ONLN);"
 
+    if count == -1:
+        raise OsError("Failed to get number of processing units.")
+
     count -= ignore
 
     return max(1, count)
