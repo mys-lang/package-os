@@ -309,18 +309,17 @@ class TextFile:
         self._binary_file.write(data.to_utf8())
 
 def which(executable: string) -> string:
-    """Locate given executable.
+    """Locate given executable in the user's path.
 
     """
 
-    # Obviously not perfect...
     for path in getenv("PATH").split(":"):
         full_path = f"{path}/{executable}"
 
         if exists(full_path):
             return full_path
 
-    return None
+    raise OsError(f"Executable '{executable}' not found.")
 
 def ln(src_path: string, dst_path: string):
     raise NotImplementedError()
@@ -575,7 +574,7 @@ def expanduser(path: string) -> string:
     raise NotImplementedError()
 
 def env() -> {string: string}:
-    """Returns all envirionment variables.
+    """Returns all environment variables.
 
     """
 
@@ -755,7 +754,12 @@ def test_chmod():
 
 @test
 def test_which():
-    assert which("mys-xyz123") is None
+    try:
+        which("mys-xyz123")
+        assert False
+    except OsError:
+        pass
+
     assert which("ls") is not None
 
 @test

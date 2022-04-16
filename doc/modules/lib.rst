@@ -18,8 +18,10 @@ Files and folders example
    from os import which
 
    def main():
-       if which("ls") is not None:
-           print("executable ls found")
+       path = which("ls")
+
+       if path is not None:
+           print(f"executable ls found at '{path}'")
 
        mkdir("foo")
        cd("foo")
