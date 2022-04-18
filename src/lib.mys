@@ -61,6 +61,25 @@ class Stdout:
 
         c"putchar(value);"
 
+    def write(self, data: bytes):
+        """Writes given bytes to standard output (stdout).
+
+        """
+
+        c"fwrite(data.m_bytes->data(), 1, data.m_bytes->size(), stdout);"
+
+    def write(self, data: bytes, offset: i64, count: i64):
+        """Writes given bytes to standard output (stdout).
+
+        """
+
+        length = i64(len(data))
+        offset = min(offset, length)
+        count = min(count, length - offset)
+
+        if count > 0:
+            c"fwrite(&data.m_bytes->data()[offset], 1, count, stdout);"
+
     def flush(self):
         """Flush output buffer.
 
