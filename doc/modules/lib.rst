@@ -19,7 +19,8 @@ Files and folders example
 
    def main():
        try:
-           print(f"executable ls found at '{which(\"ls\")}'")
+           path = which("ls")
+           print(f"executable ls found at '{path}'")
        except OsError:
            pass
 
