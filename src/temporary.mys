@@ -8,7 +8,7 @@ c"""source-before-namespace
 """
 
 def _create_template() -> bytes:
-    tmpdir = getenv("TMPDIR", "/tmp")
+    tmpdir = getenv("TMPDIR", "/tmp").strip_right("/")
     name = f"{tmpdir}/tmp.XXXXXX".to_utf8()
     name += 0
 
@@ -94,6 +94,7 @@ class Directory:
 @test
 def test_file():
     tmpfile = File()
+    assert "//" not in tmpfile.path()
     assert exists(tmpfile.path())
 
 def _create_files() -> (string, string):
@@ -109,6 +110,7 @@ def test_file_remove():
 @test
 def test_directory():
     tmpdir = Directory()
+    assert "//" not in tmpdir.path()
     assert exists(tmpdir.path())
 
 def _create_directories() -> (string, string):

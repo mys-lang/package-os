@@ -1,0 +1,2 @@
+Temporary files and directories
+===============================
