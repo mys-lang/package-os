@@ -1,0 +1,104 @@
+from . import exists
+from . import rm
+from . import OsError
+from . import getenv
+
+c"""source-before-namespace
+#include <unistd.h>
+"""
+
+def _create_template() -> bytes:
+    tmpdir = getenv("TMPDIR", "/tmp")
+    name = f"{tmpdir}/tmp.XXXXXX".to_utf8()
+    name += 0
+
+    return name
+
+class File:
+    """A temporary file that is automatically removed.
+
+    """
+
+    _path: string
+
+    def __init__(self):
+        self._path = None
+        name = _create_template()
+
+        c"""
+        int fd = mkstemp((char *)name.m_bytes->data());
+
+        if (fd != -1) {
+            close(fd);
+            name.m_bytes->pop_back();
+            this->_path = String(name);
+        }
+        """
+
+        if self._path is None:
+            raise OsError("Failed to create temporary file.")
+
+    def __del__(self):
+        rm(self._path, force=True)
+
+    def path(self) -> string:
+        """The file system path to the file.
+
+        """
+
+        return self._path
+
+class Directory:
+    """A temporary directory that is automatically removed.
+
+    """
+
+    _path: string
+
+    def __init__(self):
+        self._path = None
+        name = _create_template()
+
+        c"""
+        if (mkdtemp((char *)name.m_bytes->data()) != NULL) {
+            name.m_bytes->pop_back();
+            this->_path = String(name);
+        }
+        """
+
+        if self._path is None:
+            raise OsError("Failed to create temporary directory.")
+
+    def __del__(self):
+        rm(self._path, force=True, recursive=True)
+
+    def path(self) -> string:
+        """The file system path to the directory.
+
+        """
+
+        return self._path
+
+@test
+def test_file():
+    tmpfile = File()
+    assert exists(tmpfile.path())
+
+def _create_file() -> string:
+    return File().path()
+
+@test
+def test_file_remove():
+    assert not exists(_create_file())
+
+@test
+def test_directory():
+    tmpdir = Directory()
+    assert exists(tmpdir.path())
+
+def _create_directory() -> string:
+    return Directory().path()
+
+@test
+def test_directory_remove():
+    assert not exists(_create_directory())

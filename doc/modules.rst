@@ -10,4 +10,5 @@ This package provides the following modules.
    modules/lib
    modules/shell
    modules/subprocess
+   modules/temporary
    modules/tty
