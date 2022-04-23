@@ -1,7 +1,10 @@
+from . import cd
+from . import cwd
 from . import exists
-from . import rm
-from . import OsError
 from . import getenv
+from . import OsError
+from . import rm
+from . import touch
 
 c"""source-before-namespace
 #include <unistd.h>
@@ -122,3 +125,11 @@ def test_directory_remove():
     assert not exists(path_remove_true)
     assert exists(path_remove_false)
     rm(path_remove_false)
+
+@test
+def test_remove_directory():
+    tmpdir = Directory()
+    original_path = cwd()
+    cd(tmpdir.path())
+    touch("foo.txt")
+    cd(original_path)
