@@ -15,8 +15,6 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -qq libuv1-dev -y
         python -m pip install --upgrade pip
         pip install mys
     - name: Test
@@ -37,7 +35,6 @@ jobs:
         python-version: 3.8
     - name: Install dependencies
       run: |
-        brew install libuv
         python -m pip install --upgrade pip
         pip install mys
     - name: Test
