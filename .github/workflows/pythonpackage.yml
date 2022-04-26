@@ -22,6 +22,8 @@ jobs:
         mys test
         mys -C examples/files_and_folders run
         mys -C examples/tty build
+        mys -C examples/nproc run
+        mys -C examples/temporary run
 
   macos:
 
