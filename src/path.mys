@@ -1,0 +1,141 @@
+class Path:
+    _parts: [string]
+
+    def __init__(self, path: string):
+        if path == "":
+            path = "."
+
+        self._parts = []
+
+        if path[0] == '/':
+            self._parts.append("/")
+
+        for part in path.split("/"):
+            if part in ["", "."]:
+                continue
+
+            self._parts.append(part)
+
+    def __eq__(self, other: Path) -> bool:
+        return str(self) == str(other)
+
+    def name(self) -> string:
+        """The final component.
+
+        """
+
+        if len(self._parts) == 0:
+            return ""
+
+        name = self._parts[-1]
+
+        if name == "/":
+            return ""
+
+        return name
+
+    def stem(self) -> string:
+        """The final component without extension.
+
+        """
+
+        return self.name()[:-len(self.extension())]
+
+    def extension(self) -> string:
+        """The final component extension, including the dot.
+
+        """
+
+        name = self.name()
+        last_dot_index = name[::-1].find('.')
+
+        if last_dot_index == -1:
+            return ""
+
+        return name[i64(len(name)) - last_dot_index - 1:]
+
+    def parent(self) -> Path:
+        """The parent path.
+
+        """
+
+        return Path("/".join(self._parts[:-1]))
+
+    def __div__(self, other: string) -> Path:
+        """Join with other path.
+
+        """
+
+        if self.name() == "":
+            return Path(other)
+        else:
+            return Path(str(self) + "/" + other)
+
+    def __div__(self, other: Path) -> Path:
+        """Join with other path.
+
+        """
+
+        return self / str(other)
+
+    def __str__(self) -> string:
+        return "/".join(self._parts).replace("//", "/")
+
+@test
+def test_path():
+    assert str(Path("")) == ""
+    assert str(Path("foo//bar")) == "foo/bar"
+    assert str(Path("foo/./bar")) == "foo/bar"
+    assert str(Path("foo/../bar")) == "foo/../bar"
+
+@test
+def test_name():
+    path = Path("foo/bar.txt")
+    assert path.name() == "bar.txt"
+
+    path = Path("")
+    assert path.name() == ""
+
+@test
+def test_stem():
+    path = Path("foo/bar.txt")
+    assert path.stem() == "bar"
+
+    path = Path("")
+    assert path.stem() == ""
+
+@test
+def test_extension():
+    path = Path("foo/bar.txt")
+    assert path.extension() == ".txt"
+
+    path = Path("foo/bar")
+    assert path.extension() == ""
+
+    path = Path("")
+    assert path.extension() == ""
+
+@test
+def test_parent():
+    path = Path("foo/bar.txt")
+    assert path.parent() == Path("foo")
+
+    path = Path(".")
+    assert path.parent() == Path(".")
+
+    path = Path("foo")
+    assert path.parent().parent() == Path(".")
+
+@test
+def test_join():
+    path = Path("foo") / "bar.txt"
+    assert str(path) == "foo/bar.txt"
+
+    path = Path("foo") / "/bar.txt"
+    assert str(path) == "foo/bar.txt"
+
+    path = Path("foo") / Path("bar.txt")
+    assert str(path) == "foo/bar.txt"
+
+    path = Path(".") / Path("bar.txt")
+    assert str(path) == "bar.txt"
