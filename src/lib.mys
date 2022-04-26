@@ -3,6 +3,7 @@ from fiber import current
 from fiber import suspend
 from .subprocess import run
 from .utils import to_utf8
+from .path import Path
 
 c"""source-before-namespace
 #include <fstream>
@@ -459,11 +460,11 @@ class Stat:
 def stat(path: string) -> Stat:
     raise NotImplementedError()
 
-def cwd() -> string:
-    path: string = None
+def cwd() -> Path:
+    path: Path = None
 
     c"""
-    path = String(std::filesystem::current_path());
+    path = mys::make_shared<path::Path>(String(std::filesystem::current_path()));
     """
 
     return path
@@ -529,8 +530,8 @@ def extension(path: string) -> string:
     else:
         return parts[-1]
 
-def cd(path: string):
-    path_utf8 = to_utf8(path)
+def cd(path: Path):
+    path_utf8 = to_utf8(str(path))
     message: string = None
 
     c"""
@@ -546,13 +547,13 @@ def cd(path: string):
     if message is not None:
         raise OsError(message)
 
-def cp(src: string, dst: string, recursive: bool = False):
+def cp(src: Path, dst: Path, recursive: bool = False):
     """Copy files and directories.
 
     """
 
-    src_utf8 = to_utf8(src)
-    dst_utf8 = to_utf8(dst)
+    src_utf8 = to_utf8(str(src))
+    dst_utf8 = to_utf8(str(dst))
     message: string = None
 
     c"""
@@ -578,13 +579,13 @@ def cp(src: string, dst: string, recursive: bool = False):
     if message is not None:
         raise OsError(message)
 
-def mv(src: string, dst: string):
+def mv(src: Path, dst: Path):
     """Move files and directories.
 
     """
 
     cp(src, dst, recursive=True)
-    rm(src, recursive=True, force=True)
+    src.rm(recursive=True, force=True)
 
 def abspath(path: string) -> string:
     raise NotImplementedError()
@@ -645,23 +646,23 @@ def unsetenv(name: string):
 
     _ENV.pop(name, None)
 
-def tar(archive: string,
+def tar(archive: Path,
         extract: bool = False,
         create: bool = False,
         strip_components: i64 = 0,
-        output_directory: string = None,
-        path: string = None):
+        output_directory: Path = None,
+        path: Path = None):
     if extract:
         if path is None:
-            path = ""
+            path = Path("")
 
         if output_directory is None:
-            output_directory = ""
+            output_directory_option = ""
         else:
-            output_directory = f"-C {output_directory}"
+            output_directory_option = f"-C {output_directory}"
 
         run(f"tar --strip-components={strip_components} -x -f {archive} "
-            f"{output_directory} {path}")
+            f"{output_directory_option} {path}")
     elif create:
         run(f"tar czf {archive} {path}")
     else:
@@ -783,14 +784,14 @@ def test_which():
 
 @test
 def test_ls():
-    directory = "ls"
-    rm(directory, recursive=True, force=True)
-    mkdir(directory)
+    directory = Path("ls")
+    directory.rm(recursive=True, force=True)
+    directory.mkdir()
     mkdir(f"{directory}/a")
     mkdir(f"{directory}/b")
     touch(f"{directory}/c")
 
-    entries = ls(directory)
+    entries = directory.ls()
 
     assert len(entries) == 3
     assert "a" in entries
@@ -805,17 +806,17 @@ def test_ls():
     assert "b" in entries
     assert "c" in entries
 
-    cd("..")
-    rm(directory, recursive=True, force=True)
+    cd(Path(".."))
+    directory.rm(recursive=True, force=True)
 
 @test
 def test_cwd():
-    directory = "cmd"
-    mkdir(directory, exists_ok=True)
+    directory = Path("cmd")
+    directory.mkdir(exists_ok=True)
     cd(directory)
-    assert cwd().ends_with(directory)
-    cd("..")
-    rm(directory)
+    assert cwd().name() == directory.name()
+    cd(Path(".."))
+    directory.rm()
 
 @test
 def test_mkdir():
@@ -833,22 +834,22 @@ def test_mkdir():
 
 @test
 def test_cd():
-    rm("ccc", force=True)
+    Path("ccc").rm(force=True)
     path = cwd()
 
     try:
         message = ""
-        cd("ccc")
+        cd(Path("ccc"))
     except OsError as e:
         message = e.message
 
     assert message == "No such file or directory"
 
-    mkdir("ccc")
-    cd("ccc")
+    Path("ccc").mkdir()
+    cd(Path("ccc"))
     assert cwd() != path
     touch("ccc/apa")
-    cd("..")
+    cd(Path(".."))
     assert cwd() == path
     exists("ccc/apa")
 
@@ -865,7 +866,7 @@ def test_cp():
     mkdir("cp/foo")
     touch("cp/foo/fie.txt")
 
-    cp("cp", "cp-2", recursive=True)
+    cp(Path("cp"), Path("cp-2"), recursive=True)
 
     assert exists("cp/foo.txt")
     assert exists("cp/bar.txt")
@@ -888,7 +889,7 @@ def test_mv():
     mkdir("mv/foo")
     touch("mv/foo/fie.txt")
 
-    mv("mv", "mv-2")
+    mv(Path("mv"), Path("mv-2"))
 
     assert not exists("mv")
     assert exists("mv-2/foo.txt")
@@ -996,24 +997,24 @@ def test_text_file_does_not_exist():
 
 @test
 def test_tar():
-    directory = "test_tar"
-    archive = "test_tar.tar.gz"
+    directory = Path("test_tar")
+    archive = Path("test_tar.tar.gz")
 
-    rm(directory, recursive=True, force=True)
-    rm(archive, recursive=True, force=True)
+    directory.rm(recursive=True, force=True)
+    archive.rm(recursive=True, force=True)
 
     # Create.
-    mkdir(directory)
+    directory.mkdir()
     BinaryFile("test_tar/hello.txt", "w").write(b"hi\n")
     tar(archive, create=True, path=directory)
 
     # Extract.
-    rm(directory, recursive=True, force=True)
+    directory.rm(recursive=True, force=True)
     tar(archive, extract=True)
     assert BinaryFile("test_tar/hello.txt").read() == b"hi\n"
 
-    rm(directory, recursive=True, force=True)
-    rm(archive, recursive=True, force=True)
+    directory.rm(recursive=True, force=True)
+    archive.rm(recursive=True, force=True)
 
 @test
 def test_basename():
