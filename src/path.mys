@@ -4,6 +4,7 @@ from . import exists
 from . import chmod
 from . import mkdir
 from . import ls
+from . import rm
 
 class Path:
     _parts: [string]
@@ -102,6 +103,9 @@ class Path:
 
     def ls(self) -> [string]:
         return ls(str(self))
+
+    def rm(self, recursive: bool = False, force: bool = False):
+        rm(str(self), recursive, force)
 
     def __str__(self) -> string:
         return "/".join(self._parts).replace("//", "/")
