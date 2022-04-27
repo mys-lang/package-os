@@ -2,7 +2,6 @@ from . import cd
 from . import cwd
 from . import getenv
 from . import OsError
-from . import touch
 from .path import Path
 
 c"""source-before-namespace
@@ -128,5 +127,5 @@ def test_remove_directory():
     tmpdir = Directory()
     original_path = cwd()
     cd(tmpdir.path())
-    touch("foo.txt")
+    Path("foo.txt").touch()
     cd(original_path)

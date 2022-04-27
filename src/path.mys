@@ -1,11 +1,23 @@
 from . import BinaryFile
 from . import TextFile
-from . import exists
-from . import chmod
-from . import mkdir
-from . import ls
-from . import rm
-from . import touch
+from .utils import to_utf8
+from . import OsError
+
+c"""source-before-namespace
+#include <fstream>
+#include <filesystem>
+#include <cstdlib>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+
+static inline int chmod_wrapper(const char *name_p, u32 mode)
+{
+    return chmod(name_p, mode);
+}
+"""
 
 class Path:
     """A file system path.
@@ -55,7 +67,12 @@ class Path:
 
         """
 
-        return self.name()[:-len(self.extension())]
+        extension_length = len(self.extension())
+
+        if extension_length > 0:
+            return self.name()[:-extension_length]
+        else:
+            return self.name()
 
     def extension(self) -> string:
         """The final component extension, including the dot.
@@ -65,7 +82,7 @@ class Path:
         name = self.name()
         last_dot_index = name.find_reverse('.')
 
-        if last_dot_index == -1:
+        if last_dot_index <= 0 or last_dot_index == i64(len(name) - 1):
             return ""
 
         return name[last_dot_index:]
@@ -77,7 +94,7 @@ class Path:
 
         return Path("/".join(self._parts[:-1]))
 
-    def __div__(self, other: string) -> Path:
+    def join(self, other: string) -> Path:
         """Join with other path.
 
         """
@@ -87,12 +104,12 @@ class Path:
         else:
             return Path(str(self) + "/" + other)
 
-    def __div__(self, other: Path) -> Path:
+    def join(self, other: Path) -> Path:
         """Join with other path.
 
         """
 
-        return self / str(other)
+        return self.join(str(other))
 
     def read_text(self) -> string:
         return TextFile(str(self)).read()
@@ -107,25 +124,149 @@ class Path:
         BinaryFile(str(self), "w").write(data)
 
     def exists(self) -> bool:
-        return exists(str(self))
+        return _exists(str(self))
 
     def mkdir(self, exists_ok: bool = False):
-        mkdir(str(self), exists_ok)
+        _mkdir(str(self), exists_ok)
 
     def chmod(self, mode: u32):
-        chmod(str(self), mode)
+        _chmod(str(self), mode)
 
-    def ls(self) -> [string]:
-        return ls(str(self))
+    def ls(self) -> [Path]:
+        return [Path(path) for path in _ls(str(self))]
 
     def rm(self, recursive: bool = False, force: bool = False):
-        rm(str(self), recursive, force)
+        _rm(str(self), recursive, force)
 
     def touch(self):
-        touch(str(self))
+        _touch(str(self))
 
     def __str__(self) -> string:
         return "/".join(self._parts).replace("//", "/")
+
+def _ls(path: string = ".") -> [string]:
+    """Returns all files and folders in given directory.
+
+    """
+
+    path_utf8 = to_utf8(path)
+    entries: [string] = []
+
+    c"""
+    char *path_p = (char *)path_utf8.m_bytes->data();
+
+    for (const auto& entry : std::filesystem::directory_iterator(path_p)) {
+        entries->append(entry.path().filename().c_str());
+    }
+    """
+
+    return entries
+
+def _rm(path: string, recursive: bool = False, force: bool = False):
+    """Remove files and directories.
+
+    Give `recursive` as ``True`` to remove all files and folders
+    recursivly.
+
+    Give `force` as ``True`` to ignore errors.
+
+    """
+
+    path_utf8 = to_utf8(path)
+    message: string = None
+
+    c"""
+    std::error_code ec;
+    bool ok;
+
+    if (recursive) {
+        ok = (std::filesystem::remove_all((char *)path_utf8.m_bytes->data(), ec) > 0);
+    } else {
+        ok = std::filesystem::remove((char *)path_utf8.m_bytes->data(), ec);
+    }
+
+    if (!ok) {
+        if (!force) {
+            if (ec) {
+                message = String(ec.message());
+            } else {
+                message = String(strerror(ENOENT));
+            }
+        }
+    }
+    """
+
+    if message is not None:
+        raise OsError(message)
+
+def _mkdir(path: string, exists_ok: bool = False):
+    """Create directories.
+
+    Give `exists_ok` as ``True`` to ignore errors.
+
+    """
+
+    path_utf8 = to_utf8(path)
+    message: string = None
+
+    c"""
+    std::error_code ec;
+    bool ok;
+
+    ok = std::filesystem::create_directories((char *)path_utf8.m_bytes->data(), ec);
+
+    if (!ok) {
+        if (ec) {
+            message = String(ec.message());
+        } else if (!exists_ok) {
+            message = String(strerror(EEXIST));
+        }
+    }
+    """
+
+    if message is not None:
+        raise OsError(message)
+
+def _exists(path: string) -> bool:
+    res: bool = False
+    path_utf8 = to_utf8(path)
+
+    c"""
+    res = std::filesystem::exists((const char *)path_utf8.m_bytes->data());
+    """
+
+    return res
+
+def _chmod(path: string, mode: u32):
+    """Change permissions of given file.
+
+    """
+
+    message: string = None
+    path_utf8 = to_utf8(path)
+
+    c"""
+    if (chmod_wrapper((const char *)path_utf8.m_bytes->data(), mode) != 0) {
+        message = String(strerror(errno));
+    }
+    """
+
+    if message is not None:
+        raise OsError(message)
+
+def _is_file(path: string) -> bool:
+    raise NotImplementedError()
+
+def _is_dir(path: string) -> bool:
+    raise NotImplementedError()
+
+def _touch(path: string):
+    # ToDo: Only update mtime if exists.
+    path_utf8 = to_utf8(path)
+
+    c"""
+    std::ofstream MyFile((char *)path_utf8.m_bytes->data());
+    """
 
 @test
 def test_path():
@@ -136,70 +277,152 @@ def test_path():
 
 @test
 def test_name():
-    path = Path("foo/bar.txt")
-    assert path.name() == "bar.txt"
-
-    path = Path("")
-    assert path.name() == ""
+    assert Path("foo/bar.txt").name() == "bar.txt"
+    assert Path("").name() == ""
+    assert Path("foo.txt").name() == "foo.txt"
+    assert Path("/foo/bar").name() == "bar"
+    assert Path(".bar").name() == ".bar"
+    assert Path("foo.tar.gz").name() == "foo.tar.gz"
+    assert Path("a/b/").name() == "b"
 
 @test
 def test_stem():
-    path = Path("foo/bar.txt")
-    assert path.stem() == "bar"
-
-    path = Path("")
-    assert path.stem() == ""
+    assert Path("foo/bar.txt").stem() == "bar"
+    assert Path("").stem() == ""
+    assert Path("foo.txt").stem() == "foo"
+    assert Path("/foo/bar").stem() == "bar"
+    assert Path(".bar").stem() == ".bar"
+    assert Path("..out").stem() == "."
+    assert Path("foo.tar.gz").stem() == "foo.tar"
+    assert Path("foo.tar.gz.").stem() == "foo.tar.gz."
 
 @test
 def test_extension():
-    path = Path("foo/bar.txt")
-    assert path.extension() == ".txt"
-
-    path = Path("foo/bar")
-    assert path.extension() == ""
-
-    path = Path("")
-    assert path.extension() == ""
-
-    path = Path("bar.tar.gz")
-    assert path.extension() == ".gz"
+    assert Path("foo/bar.txt").extension() == ".txt"
+    assert Path("").extension() == ""
+    assert Path("bar.tar.gz").extension() == ".gz"
+    assert Path("foo.txt").extension() == ".txt"
+    assert Path("/foo/bar").extension() == ""
+    assert Path(".bar").extension() == ""
+    assert Path("..out").extension() == ".out"
+    assert Path("foo.tar.gz").extension() == ".gz"
+    assert Path("foo.tar.gz.").extension() == ""
 
 @test
 def test_parent():
-    path = Path("foo/bar.txt")
-    assert path.parent() == Path("foo")
-
-    path = Path(".")
-    assert path.parent() == Path(".")
-
-    path = Path("foo")
-    assert path.parent().parent() == Path(".")
+    assert Path("foo/bar.txt").parent() == Path("foo")
+    assert Path(".").parent() == Path(".")
+    assert Path("foo").parent().parent() == Path(".")
 
 @test
 def test_join():
-    path = Path("foo") / "bar.txt"
+    path = Path("foo").join("bar.txt")
     assert str(path) == "foo/bar.txt"
 
-    path = Path("foo") / "/bar.txt"
+    path = Path("foo").join("/bar.txt")
     assert str(path) == "foo/bar.txt"
 
-    path = Path("foo/") / "/bar.txt"
+    path = Path("foo/").join("/bar.txt")
     assert str(path) == "foo/bar.txt"
 
-    path = Path("foo") / Path("bar.txt")
+    path = Path("foo").join(Path("bar.txt"))
     assert str(path) == "foo/bar.txt"
 
-    path = Path(".") / Path("bar.txt")
+    path = Path(".").join(Path("bar.txt"))
     assert str(path) == "bar.txt"
 
-    path = Path("./") / Path("/bar.txt")
+    path = Path("./").join(Path("/bar.txt"))
     assert str(path) == "bar.txt"
 
-    path = Path("") / Path("/bar.txt")
+    path = Path("").join(Path("/bar.txt"))
     assert str(path) == "bar.txt"
 
-    path = Path("/") / Path("bar.txt")
+    path = Path("/").join(Path("bar.txt"))
     assert str(path) == "/bar.txt"
 
-    path = Path("") / Path("/")
+    path = Path("").join(Path("/"))
     assert str(path) == ""
+
+@test
+def test_ls():
+    directory = Path("ls")
+    directory.rm(recursive=True, force=True)
+    directory.mkdir()
+    directory.join("a").mkdir()
+    directory.join("b").mkdir()
+    directory.join("c").touch()
+
+    entries = directory.ls()
+
+    assert len(entries) == 3
+    assert Path("a") in entries
+    assert Path("b") in entries
+    assert Path("c") in entries
+
+    directory.rm(recursive=True, force=True)
+
+@test
+def test_rm():
+    directory = "test_rm"
+    _rm(directory, recursive=True, force=True)
+    _mkdir(directory)
+    _rm(directory, recursive=True)
+    _mkdir(f"{directory}/foo/bar", exists_ok=True)
+
+    try:
+        message = ""
+        _rm(directory)
+    except OsError as e:
+        message = e.message
+
+    assert message == "Directory not empty"
+
+    _rm(directory, recursive=True)
+
+@test
+def test_rm_single_file():
+    filename = "test_rm_single_file"
+    _touch(filename)
+    _rm(filename)
+
+    try:
+        message = ""
+        _rm(filename)
+    except OsError as e:
+        message = e.message
+
+    assert message == "No such file or directory"
+
+    _rm(filename, force=True)
+
+@test
+def test_chmod():
+    filename = "cmod"
+
+    _rm(filename, force=True)
+
+    try:
+        message = ""
+        _chmod(filename, 0o666)
+    except OsError as e:
+        message = e.message
+
+    assert message == "No such file or directory"
+
+    _touch(filename)
+    _chmod(filename, 0o666)
+    _rm(filename)
+
+@test
+def test_mkdir():
+    directory = "adir"
+    _rm(directory, force=True)
+    _mkdir(directory, exists_ok=True)
+
+    try:
+        message = ""
+        _mkdir(directory)
+    except OsError as e:
+        message = e.message
+
+    assert message == "File exists"

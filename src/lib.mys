@@ -26,11 +26,6 @@ static inline void unsetenv_wrapper(const char *name_p)
 {
     unsetenv(name_p);
 }
-
-static inline int chmod_wrapper(const char *name_p, u32 mode)
-{
-    return chmod(name_p, mode);
-}
 """
 
 class Stdin:
@@ -328,137 +323,18 @@ class TextFile:
 
         self._binary_file.write(data.to_utf8())
 
-def which(executable: string) -> string:
+def which(executable: string) -> Path:
     """Locate given executable in the user's path.
 
     """
 
     for path in getenv("PATH").split(":"):
-        full_path = f"{path}/{executable}"
+        full_path = Path(path).join(executable)
 
-        if exists(full_path):
+        if full_path.exists():
             return full_path
 
     raise OsError(f"Executable '{executable}' not found.")
-
-def ln(src_path: string, dst_path: string):
-    raise NotImplementedError()
-
-def ls(path: string = ".") -> [string]:
-    """Returns all files and folders in given directory.
-
-    """
-
-    path_utf8 = to_utf8(path)
-    entries: [string] = []
-
-    c"""
-    char *path_p = (char *)path_utf8.m_bytes->data();
-
-    for (const auto& entry : std::filesystem::directory_iterator(path_p)) {
-        entries->append(entry.path().filename().c_str());
-    }
-    """
-
-    return entries
-
-def rm(path: string, recursive: bool = False, force: bool = False):
-    """Remove files and directories.
-
-    Give `recursive` as ``True`` to remove all files and folders
-    recursivly.
-
-    Give `force` as ``True`` to ignore errors.
-
-    """
-
-    path_utf8 = to_utf8(path)
-    message: string = None
-
-    c"""
-    std::error_code ec;
-    bool ok;
-
-    if (recursive) {
-        ok = (std::filesystem::remove_all((char *)path_utf8.m_bytes->data(), ec) > 0);
-    } else {
-        ok = std::filesystem::remove((char *)path_utf8.m_bytes->data(), ec);
-    }
-
-    if (!ok) {
-        if (!force) {
-            if (ec) {
-                message = String(ec.message());
-            } else {
-                message = String(strerror(ENOENT));
-            }
-        }
-    }
-    """
-
-    if message is not None:
-        raise OsError(message)
-
-def mkdir(path: string, exists_ok: bool = False):
-    """Create directories.
-
-    Give `exists_ok` as ``True`` to ignore errors.
-
-    """
-
-    path_utf8 = to_utf8(path)
-    message: string = None
-
-    c"""
-    std::error_code ec;
-    bool ok;
-
-    ok = std::filesystem::create_directories((char *)path_utf8.m_bytes->data(), ec);
-
-    if (!ok) {
-        if (ec) {
-            message = String(ec.message());
-        } else if (!exists_ok) {
-            message = String(strerror(EEXIST));
-        }
-    }
-    """
-
-    if message is not None:
-        raise OsError(message)
-
-def exists(path: string) -> bool:
-    res: bool = False
-    path_utf8 = to_utf8(path)
-
-    c"""
-    res = std::filesystem::exists((const char *)path_utf8.m_bytes->data());
-    """
-
-    return res
-
-def chmod(path: string, mode: u32):
-    """Change permissions of given file.
-
-    """
-
-    message: string = None
-    path_utf8 = to_utf8(path)
-
-    c"""
-    if (chmod_wrapper((const char *)path_utf8.m_bytes->data(), mode) != 0) {
-        message = String(strerror(errno));
-    }
-    """
-
-    if message is not None:
-        raise OsError(message)
-
-class Stat:
-    pass
-
-def stat(path: string) -> Stat:
-    raise NotImplementedError()
 
 def cwd() -> Path:
     path: Path = None
@@ -468,67 +344,6 @@ def cwd() -> Path:
     """
 
     return path
-
-def is_file(path: string) -> bool:
-    raise NotImplementedError()
-
-def is_dir(path: string) -> bool:
-    raise NotImplementedError()
-
-def readlink(path: string) -> string:
-    raise NotImplementedError()
-
-def touch(path: string):
-    # ToDo: Only update mtime if exists.
-    path_utf8 = to_utf8(path)
-
-    c"""
-    std::ofstream MyFile((char *)path_utf8.m_bytes->data());
-    """
-
-def basename(path: string) -> string:
-    """Returns the leaf file or directory name.
-
-    """
-
-    if path.ends_with("/"):
-        path = path[:-1]
-
-    parts = path.split('/')
-
-    if len(parts) < 1:
-        raise OsError(f"{path} has no name")
-
-    return parts[-1]
-
-def stem(path: string) -> string:
-    """Returns the leaf file or directory stem (non-extension).
-
-    """
-
-    extension_length = len(extension(path))
-
-    if extension_length == 0:
-        return basename(path)
-    else:
-        return basename(path)[:-extension_length - 1]
-
-def extension(path: string) -> string:
-    """Returns the leaf file or directory extension.
-
-    """
-
-    parts = basename(path).split('.')
-
-    if len(parts) <= 1:
-        return ""
-    elif len(parts) == 2:
-        if parts[0] == "":
-            return ""
-        else:
-            return parts[-1]
-    else:
-        return parts[-1]
 
 def cd(path: Path):
     path_utf8 = to_utf8(str(path))
@@ -586,12 +401,6 @@ def mv(src: Path, dst: Path):
 
     cp(src, dst, recursive=True)
     src.rm(recursive=True, force=True)
-
-def abspath(path: string) -> string:
-    raise NotImplementedError()
-
-def expanduser(path: string) -> string:
-    raise NotImplementedError()
 
 def env() -> {string: string}:
     """Returns all environment variables.
@@ -695,40 +504,6 @@ def test_nproc():
     assert nproc(ignore=nproc()) == 1
 
 @test
-def test_rm():
-    directory = "test_rm"
-    rm(directory, recursive=True, force=True)
-    mkdir(directory)
-    rm(directory, recursive=True)
-    mkdir(f"{directory}/foo/bar", exists_ok=True)
-
-    try:
-        message = ""
-        rm(directory)
-    except OsError as e:
-        message = e.message
-
-    assert message == "Directory not empty"
-
-    rm(directory, recursive=True)
-
-@test
-def test_rm_single_file():
-    filename = "test_rm_single_file"
-    touch(filename)
-    rm(filename)
-
-    try:
-        message = ""
-        rm(filename)
-    except OsError as e:
-        message = e.message
-
-    assert message == "No such file or directory"
-
-    rm(filename, force=True)
-
-@test
 def test_env_get_pwd():
     assert getenv("PWD") is not None
 
@@ -755,22 +530,13 @@ def test_all():
     assert "PWD" in env()
 
 @test
-def test_chmod():
-    filename = "cmod"
-
-    rm(filename, force=True)
-
-    try:
-        message = ""
-        chmod(filename, 0o666)
-    except OsError as e:
-        message = e.message
-
-    assert message == "No such file or directory"
-
-    touch(filename)
-    chmod(filename, 0o666)
-    rm(filename)
+def test_cwd():
+    directory = Path("cmd")
+    directory.mkdir(exists_ok=True)
+    cd(directory)
+    assert cwd().name() == directory.name()
+    cd(Path(".."))
+    directory.rm()
 
 @test
 def test_which():
@@ -781,56 +547,6 @@ def test_which():
         pass
 
     assert which("ls") is not None
-
-@test
-def test_ls():
-    directory = Path("ls")
-    directory.rm(recursive=True, force=True)
-    directory.mkdir()
-    mkdir(f"{directory}/a")
-    mkdir(f"{directory}/b")
-    touch(f"{directory}/c")
-
-    entries = directory.ls()
-
-    assert len(entries) == 3
-    assert "a" in entries
-    assert "b" in entries
-    assert "c" in entries
-
-    cd(directory)
-    entries = ls()
-
-    assert len(entries) == 3
-    assert "a" in entries
-    assert "b" in entries
-    assert "c" in entries
-
-    cd(Path(".."))
-    directory.rm(recursive=True, force=True)
-
-@test
-def test_cwd():
-    directory = Path("cmd")
-    directory.mkdir(exists_ok=True)
-    cd(directory)
-    assert cwd().name() == directory.name()
-    cd(Path(".."))
-    directory.rm()
-
-@test
-def test_mkdir():
-    directory = "adir"
-    rm(directory, force=True)
-    mkdir(directory, exists_ok=True)
-
-    try:
-        message = ""
-        mkdir(directory)
-    except OsError as e:
-        message = e.message
-
-    assert message == "File exists"
 
 @test
 def test_cd():
@@ -848,55 +564,55 @@ def test_cd():
     Path("ccc").mkdir()
     cd(Path("ccc"))
     assert cwd() != path
-    touch("ccc/apa")
+    Path("ccc/apa").touch()
     cd(Path(".."))
     assert cwd() == path
-    exists("ccc/apa")
+    Path("ccc/apa").exists()
 
-    rm("ccc", recursive=True, force=True)
+    Path("ccc").rm(recursive=True, force=True)
 
 @test
 def test_cp():
-    rm("cp", recursive=True, force=True)
-    rm("cp-2", recursive=True, force=True)
+    Path("cp").rm(recursive=True, force=True)
+    Path("cp-2").rm(recursive=True, force=True)
 
-    mkdir("cp")
-    touch("cp/foo.txt")
-    touch("cp/bar.txt")
-    mkdir("cp/foo")
-    touch("cp/foo/fie.txt")
+    Path("cp").mkdir()
+    Path("cp/foo.txt").touch()
+    Path("cp/bar.txt").touch()
+    Path("cp/foo").mkdir()
+    Path("cp/foo/fie.txt").touch()
 
     cp(Path("cp"), Path("cp-2"), recursive=True)
 
-    assert exists("cp/foo.txt")
-    assert exists("cp/bar.txt")
-    assert exists("cp/foo/fie.txt")
-    assert exists("cp-2/foo.txt")
-    assert exists("cp-2/bar.txt")
-    assert exists("cp-2/foo/fie.txt")
+    assert Path("cp/foo.txt").exists()
+    assert Path("cp/bar.txt").exists()
+    assert Path("cp/foo/fie.txt").exists()
+    assert Path("cp-2/foo.txt").exists()
+    assert Path("cp-2/bar.txt").exists()
+    assert Path("cp-2/foo/fie.txt").exists()
 
-    rm("cp", recursive=True, force=True)
-    rm("cp-2", recursive=True, force=True)
+    Path("cp").rm(recursive=True, force=True)
+    Path("cp-2").rm(recursive=True, force=True)
 
 @test
 def test_mv():
-    rm("mv", recursive=True, force=True)
-    rm("mv-2", recursive=True, force=True)
+    Path("mv").rm(recursive=True, force=True)
+    Path("mv-2").rm(recursive=True, force=True)
 
-    mkdir("mv")
-    touch("mv/foo.txt")
-    touch("mv/bar.txt")
-    mkdir("mv/foo")
-    touch("mv/foo/fie.txt")
+    Path("mv").mkdir()
+    Path("mv/foo.txt").touch()
+    Path("mv/bar.txt").touch()
+    Path("mv/foo").mkdir()
+    Path("mv/foo/fie.txt").touch()
 
     mv(Path("mv"), Path("mv-2"))
 
-    assert not exists("mv")
-    assert exists("mv-2/foo.txt")
-    assert exists("mv-2/bar.txt")
-    assert exists("mv-2/foo/fie.txt")
+    assert not Path("mv").exists()
+    assert Path("mv-2/foo.txt").exists()
+    assert Path("mv-2/bar.txt").exists()
+    assert Path("mv-2/foo/fie.txt").exists()
 
-    rm("mv-2", recursive=True, force=True)
+    Path("mv-2").rm(recursive=True, force=True)
 
 @test
 def test_binary_file():
@@ -907,53 +623,53 @@ def test_binary_file():
 
 @test
 def test_binary_file_not_found():
-    filename = "test_binary_file_not_found.bin"
-    rm(filename, force=True)
+    filename = Path("test_binary_file_not_found.bin")
+    filename.rm(force=True)
 
     try:
         ok = False
-        BinaryFile(filename)
+        BinaryFile(str(filename))
     except OsError as e:
         ok = True
 
     assert ok
 
-    rm(filename, force=True)
+    filename.rm(force=True)
 
 @test
 def test_create_binary_file():
-    filename = "test_create_binary_file.bin"
-    rm(filename, force=True)
+    filename = Path("test_create_binary_file.bin")
+    filename.rm(force=True)
 
-    bf = BinaryFile(filename, "w")
+    bf = BinaryFile(str(filename), "w")
     bf.close()
 
-    bf = BinaryFile(filename)
+    bf = BinaryFile(str(filename))
     assert bf.read() == b""
 
-    rm(filename, force=True)
+    filename.rm(force=True)
 
 @test
 def test_write_binary_file():
-    filename = "test_write_binary_file.bin"
-    rm(filename, force=True)
+    filename = Path("test_write_binary_file.bin")
+    filename.rm(force=True)
 
-    bf = BinaryFile(filename, "w")
+    bf = BinaryFile(str(filename), "w")
     bf.write(b"123")
     bf.close()
 
-    bf = BinaryFile(filename)
+    bf = BinaryFile(str(filename))
     assert bf.read() == b"123"
     bf.close()
 
-    rm(filename, force=True)
+    filename.rm(force=True)
 
 @test
 def test_read_binary_file_with_slash_slash():
-    filename = "test_read_binary_file_with_slash_slash.bin"
-    rm(filename, force=True)
+    filename = Path("test_read_binary_file_with_slash_slash.bin")
+    filename.rm(force=True)
 
-    bf = BinaryFile(filename, "w")
+    bf = BinaryFile(str(filename), "w")
     bf.write(b"123")
     bf.close()
 
@@ -961,7 +677,7 @@ def test_read_binary_file_with_slash_slash():
     assert bf.read() == b"123"
     bf.close()
 
-    rm(filename, force=True)
+    filename.rm(force=True)
 
 @test
 def test_text_file():
@@ -972,18 +688,18 @@ def test_text_file():
 
 @test
 def test_write_text_file():
-    filename = "test_write_text_file.txt"
-    rm(filename, force=True)
+    filename = Path("test_write_text_file.txt")
+    filename.rm(force=True)
 
-    tf = TextFile(filename, "w")
+    tf = TextFile(str(filename), "w")
     tf.write("123")
     tf.close()
 
-    tf = TextFile(filename)
+    tf = TextFile(str(filename))
     assert tf.read() == "123"
     tf.close()
 
-    rm(filename, force=True)
+    filename.rm(force=True)
 
 @test
 def test_text_file_does_not_exist():
@@ -1015,29 +731,3 @@ def test_tar():
 
     directory.rm(recursive=True, force=True)
     archive.rm(recursive=True, force=True)
-
-@test
-def test_basename():
-    assert basename("foo.txt") == "foo.txt"
-    assert basename("/foo/bar") == "bar"
-    assert basename(".bar") == ".bar"
-    assert basename("foo.tar.gz") == "foo.tar.gz"
-    assert basename("a/b/") == "b"
-
-@test
-def test_stem():
-    assert stem("foo.txt") == "foo"
-    assert stem("/foo/bar") == "bar"
-    assert stem(".bar") == ".bar"
-    assert stem("..out") == "."
-    assert stem("foo.tar.gz") == "foo.tar"
-    assert stem("foo.tar.gz.") == "foo.tar.gz."
-
-@test
-def test_extension():
-    assert extension("foo.txt") == "txt"
-    assert extension("/foo/bar") == ""
-    assert extension(".bar") == ""
-    assert extension("..out") == "out"
-    assert extension("foo.tar.gz") == "gz"
-    assert extension("foo.tar.gz.") == ""

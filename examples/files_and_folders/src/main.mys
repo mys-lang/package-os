@@ -1,7 +1,5 @@
 from os import cd
 from os import cwd
-from os import ls
-from os import touch
 from os import which
 from os.path import Path
 
@@ -12,11 +10,11 @@ def main():
     Path("foo").mkdir()
     cd(Path("foo"))
     print("Current working directory is", cwd())
-    touch("bar")
+    Path("bar").touch()
 
     if Path("bar").exists():
         print("bar exists")
 
-    print(f"Files:", ls())
+    print(f"Files:", Path(".").ls())
     cd(Path(".."))
     Path("foo").rm(recursive=True, force=True)
