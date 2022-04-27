@@ -82,8 +82,8 @@ class Path:
 
         """
 
-        if self.name() == "":
-            return Path(other)
+        if self.name() == "" and len(self._parts) == 0:
+            return Path("./" + other)
         else:
             return Path(str(self) + "/" + other)
 
@@ -191,3 +191,15 @@ def test_join():
 
     path = Path(".") / Path("bar.txt")
     assert str(path) == "bar.txt"
+
+    path = Path("./") / Path("/bar.txt")
+    assert str(path) == "bar.txt"
+
+    path = Path("") / Path("/bar.txt")
+    assert str(path) == "bar.txt"
+
+    path = Path("/") / Path("bar.txt")
+    assert str(path) == "/bar.txt"
+
+    path = Path("") / Path("/")
+    assert str(path) == ""
