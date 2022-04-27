@@ -133,7 +133,12 @@ class Path:
         _chmod(str(self), mode)
 
     def ls(self) -> [Path]:
-        return [Path(path) for path in _ls(str(self))]
+        dpath = str(self)
+
+        if dpath == "":
+            dpath = "."
+
+        return [Path(path) for path in _ls(dpath)]
 
     def rm(self, recursive: bool = False, force: bool = False):
         _rm(str(self), recursive, force)
