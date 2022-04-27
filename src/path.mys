@@ -2,6 +2,7 @@ from . import BinaryFile
 from . import TextFile
 from .utils import to_utf8
 from . import OsError
+from . import cwd
 
 c"""source-before-namespace
 #include <fstream>
@@ -193,8 +194,86 @@ class Path:
 
         _touch(str(self))
 
+    def cd(self):
+        """Change directory.
+
+        """
+
+        _cd(self)
+
+    def cp(self, dst: Path, recursive: bool = False):
+        """Copy files and directories.
+
+        """
+
+        _cp(self, dst, recursive)
+
+    def mv(self, dst: Path):
+        """Move files and directories.
+
+        """
+
+        _mv(self, dst)
+
     def __str__(self) -> string:
         return "/".join(self._parts).replace("//", "/")
+
+def _cd(path: Path):
+    path_utf8 = to_utf8(str(path))
+    message: string = None
+
+    c"""
+    std::error_code ec;
+
+    std::filesystem::current_path((char *)path_utf8.m_bytes->data(), ec);
+
+    if (ec) {
+        message = String(ec.message());
+    }
+    """
+
+    if message is not None:
+        raise OsError(message)
+
+def _cp(src: Path, dst: Path, recursive: bool = False):
+    """Copy files and directories.
+
+    """
+
+    src_utf8 = to_utf8(str(src))
+    dst_utf8 = to_utf8(str(dst))
+    message: string = None
+
+    c"""
+    std::error_code ec;
+    std::filesystem::copy_options options;
+
+    if (recursive) {
+        options = std::filesystem::copy_options::recursive;
+    } else {
+        options = std::filesystem::copy_options::none;
+    }
+
+    std::filesystem::copy((char *)src_utf8.m_bytes->data(),
+                          (char *)dst_utf8.m_bytes->data(),
+                          options,
+                          ec);
+
+    if (ec) {
+        message = String(ec.message());
+    }
+    """
+
+    if message is not None:
+        raise OsError(message)
+
+def _mv(src: Path, dst: Path):
+    """Move files and directories.
+
+    """
+
+    _cp(src, dst, recursive=True)
+    src.rm(recursive=True, force=True)
 
 def _ls(path: string = ".") -> [string]:
     """Returns all files and folders in given directory.
@@ -472,3 +551,69 @@ def test_mkdir():
         message = e.message
 
     assert message == "File exists"
+
+@test
+def test_cd():
+    Path("ccc").rm(force=True)
+    path = cwd()
+
+    try:
+        message = ""
+        Path("ccc").cd()
+    except OsError as e:
+        message = e.message
+
+    assert message == "No such file or directory"
+
+    Path("ccc").mkdir()
+    Path("ccc").cd()
+    assert cwd() != path
+    Path("ccc/apa").touch()
+    Path("..").cd()
+    assert cwd() == path
+    Path("ccc/apa").exists()
+
+    Path("ccc").rm(recursive=True, force=True)
+
+@test
+def test_cp():
+    Path("cp").rm(recursive=True, force=True)
+    Path("cp-2").rm(recursive=True, force=True)
+
+    Path("cp").mkdir()
+    Path("cp/foo.txt").touch()
+    Path("cp/bar.txt").touch()
+    Path("cp/foo").mkdir()
+    Path("cp/foo/fie.txt").touch()
+
+    Path("cp").cp(Path("cp-2"), recursive=True)
+
+    assert Path("cp/foo.txt").exists()
+    assert Path("cp/bar.txt").exists()
+    assert Path("cp/foo/fie.txt").exists()
+    assert Path("cp-2/foo.txt").exists()
+    assert Path("cp-2/bar.txt").exists()
+    assert Path("cp-2/foo/fie.txt").exists()
+
+    Path("cp").rm(recursive=True, force=True)
+    Path("cp-2").rm(recursive=True, force=True)
+
+@test
+def test_mv():
+    Path("mv").rm(recursive=True, force=True)
+    Path("mv-2").rm(recursive=True, force=True)
+
+    Path("mv").mkdir()
+    Path("mv/foo.txt").touch()
+    Path("mv/bar.txt").touch()
+    Path("mv/foo").mkdir()
+    Path("mv/foo/fie.txt").touch()
+
+    Path("mv").mv(Path("mv-2"))
+
+    assert not Path("mv").exists()
+    assert Path("mv-2/foo.txt").exists()
+    assert Path("mv-2/bar.txt").exists()
+    assert Path("mv-2/foo/fie.txt").exists()
+
+    Path("mv-2").rm(recursive=True, force=True)

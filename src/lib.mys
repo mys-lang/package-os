@@ -345,63 +345,6 @@ def cwd() -> Path:
 
     return path
 
-def cd(path: Path):
-    path_utf8 = to_utf8(str(path))
-    message: string = None
-
-    c"""
-    std::error_code ec;
-
-    std::filesystem::current_path((char *)path_utf8.m_bytes->data(), ec);
-
-    if (ec) {
-        message = String(ec.message());
-    }
-    """
-
-    if message is not None:
-        raise OsError(message)
-
-def cp(src: Path, dst: Path, recursive: bool = False):
-    """Copy files and directories.
-
-    """
-
-    src_utf8 = to_utf8(str(src))
-    dst_utf8 = to_utf8(str(dst))
-    message: string = None
-
-    c"""
-    std::error_code ec;
-    std::filesystem::copy_options options;
-
-    if (recursive) {
-        options = std::filesystem::copy_options::recursive;
-    } else {
-        options = std::filesystem::copy_options::none;
-    }
-
-    std::filesystem::copy((char *)src_utf8.m_bytes->data(),
-                          (char *)dst_utf8.m_bytes->data(),
-                          options,
-                          ec);
-
-    if (ec) {
-        message = String(ec.message());
-    }
-    """
-
-    if message is not None:
-        raise OsError(message)
-
-def mv(src: Path, dst: Path):
-    """Move files and directories.
-
-    """
-
-    cp(src, dst, recursive=True)
-    src.rm(recursive=True, force=True)
-
 def env() -> {string: string}:
     """Returns all environment variables.
 
@@ -533,9 +476,9 @@ def test_all():
 def test_cwd():
     directory = Path("cmd")
     directory.mkdir(exists_ok=True)
-    cd(directory)
+    directory.cd()
     assert cwd().name() == directory.name()
-    cd(Path(".."))
+    Path("..").cd()
     directory.rm()
 
 @test
@@ -547,72 +490,6 @@ def test_which():
         pass
 
     assert which("ls") is not None
-
-@test
-def test_cd():
-    Path("ccc").rm(force=True)
-    path = cwd()
-
-    try:
-        message = ""
-        cd(Path("ccc"))
-    except OsError as e:
-        message = e.message
-
-    assert message == "No such file or directory"
-
-    Path("ccc").mkdir()
-    cd(Path("ccc"))
-    assert cwd() != path
-    Path("ccc/apa").touch()
-    cd(Path(".."))
-    assert cwd() == path
-    Path("ccc/apa").exists()
-
-    Path("ccc").rm(recursive=True, force=True)
-
-@test
-def test_cp():
-    Path("cp").rm(recursive=True, force=True)
-    Path("cp-2").rm(recursive=True, force=True)
-
-    Path("cp").mkdir()
-    Path("cp/foo.txt").touch()
-    Path("cp/bar.txt").touch()
-    Path("cp/foo").mkdir()
-    Path("cp/foo/fie.txt").touch()
-
-    cp(Path("cp"), Path("cp-2"), recursive=True)
-
-    assert Path("cp/foo.txt").exists()
-    assert Path("cp/bar.txt").exists()
-    assert Path("cp/foo/fie.txt").exists()
-    assert Path("cp-2/foo.txt").exists()
-    assert Path("cp-2/bar.txt").exists()
-    assert Path("cp-2/foo/fie.txt").exists()
-
-    Path("cp").rm(recursive=True, force=True)
-    Path("cp-2").rm(recursive=True, force=True)
-
-@test
-def test_mv():
-    Path("mv").rm(recursive=True, force=True)
-    Path("mv-2").rm(recursive=True, force=True)
-
-    Path("mv").mkdir()
-    Path("mv/foo.txt").touch()
-    Path("mv/bar.txt").touch()
-    Path("mv/foo").mkdir()
-    Path("mv/foo/fie.txt").touch()
-
-    mv(Path("mv"), Path("mv-2"))
-
-    assert not Path("mv").exists()
-    assert Path("mv-2/foo.txt").exists()
-    assert Path("mv-2/bar.txt").exists()
-    assert Path("mv-2/foo/fie.txt").exists()
-
-    Path("mv-2").rm(recursive=True, force=True)
 
 @test
 def test_binary_file():
