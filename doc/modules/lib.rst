@@ -11,29 +11,24 @@ Files and folders example
 
    from os import cd
    from os import cwd
-   from os import exists
-   from os import mkdir
-   from os import rm
-   from os import touch
    from os import which
+   from os.path import Path
 
    def main():
-       try:
-           path = which("ls")
-           print(f"executable ls found at '{path}'")
-       except OsError:
-           pass
+       if which("ls") is not None:
+           print("executable ls found")
 
-       mkdir("foo")
-       cd("foo")
+       Path("foo").mkdir()
+       cd(Path("foo"))
        print("Current working directory is", cwd())
-       touch("bar")
+       Path("bar").touch()
 
-       if exists("bar"):
+       if Path("bar").exists():
            print("bar exists")
 
-       cd("..")
-       rm("foo", recursive=True, force=True)
+       print(f"Files:", Path(".").ls())
+       cd(Path(".."))
+       Path("foo").rm(recursive=True, force=True)
 
 Environment variables example
 -----------------------------
