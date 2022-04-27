@@ -156,7 +156,7 @@ class Path:
         _mkdir(str(self), exists_ok)
 
     def chmod(self, mode: u32):
-        """Change permissions of given file.
+        """Change permissions.
 
         """
 
