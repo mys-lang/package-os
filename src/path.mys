@@ -11,7 +11,7 @@ class Path:
     """A file system path.
 
     """
-    
+
     _parts: [string]
 
     def __init__(self, path: string):
@@ -33,7 +33,7 @@ class Path:
         return str(self) == str(other)
 
     def __ne__(self, other: Path) -> bool:
-        return str(self) != str(other)
+        return not (self == other)
 
     def name(self) -> string:
         """The final component.
@@ -63,12 +63,12 @@ class Path:
         """
 
         name = self.name()
-        last_dot_index = name[::-1].find('.')
+        last_dot_index = name.find_reverse('.')
 
         if last_dot_index == -1:
             return ""
 
-        return name[i64(len(name)) - last_dot_index - 1:]
+        return name[last_dot_index:]
 
     def parent(self) -> Path:
         """The parent path.
@@ -161,6 +161,9 @@ def test_extension():
     path = Path("")
     assert path.extension() == ""
 
+    path = Path("bar.tar.gz")
+    assert path.extension() == ".gz"
+
 @test
 def test_parent():
     path = Path("foo/bar.txt")
@@ -178,6 +181,9 @@ def test_join():
     assert str(path) == "foo/bar.txt"
 
     path = Path("foo") / "/bar.txt"
+    assert str(path) == "foo/bar.txt"
+
+    path = Path("foo/") / "/bar.txt"
     assert str(path) == "foo/bar.txt"
 
     path = Path("foo") / Path("bar.txt")
