@@ -5,8 +5,13 @@ from . import chmod
 from . import mkdir
 from . import ls
 from . import rm
+from . import touch
 
 class Path:
+    """A file system path.
+
+    """
+    
     _parts: [string]
 
     def __init__(self, path: string):
@@ -115,6 +120,9 @@ class Path:
 
     def rm(self, recursive: bool = False, force: bool = False):
         rm(str(self), recursive, force)
+
+    def touch(self):
+        touch(str(self))
 
     def __str__(self) -> string:
         return "/".join(self._parts).replace("//", "/")

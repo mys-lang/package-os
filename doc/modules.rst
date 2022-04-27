@@ -8,7 +8,7 @@ This package provides the following modules.
    :titlesonly:
 
    modules/lib
-   modules/shell
+   modules/path
    modules/subprocess
    modules/temporary
    modules/tty
