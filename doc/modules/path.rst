@@ -1,4 +1,4 @@
-os.Path -- File system paths
+os.path -- File system paths
 ============================
 
 API
