@@ -1,4 +1,3 @@
-from os import cd
 from os import cwd
 from os import which
 from os.path import Path
@@ -8,7 +7,7 @@ def main():
         print("executable ls found")
 
     Path("foo").mkdir()
-    cd(Path("foo"))
+    Path("foo").cd()
     print("Current working directory is", cwd())
     Path("bar").touch()
 
@@ -16,5 +15,5 @@ def main():
         print("bar exists")
 
     print(f"Files:", Path(".").ls())
-    cd(Path(".."))
+    Path("..").cd()
     Path("foo").rm(recursive=True, force=True)
