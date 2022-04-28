@@ -1,6 +1,6 @@
+from . import OsError
 from . import cwd
 from . import getenv
-from . import OsError
 from .path import Path
 
 c"""source-before-namespace

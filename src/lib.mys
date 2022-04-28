@@ -1,9 +1,9 @@
 from fiber import Fiber
 from fiber import current
 from fiber import suspend
+from .path import Path
 from .subprocess import run
 from .utils import to_utf8
-from .path import Path
 
 c"""source-before-namespace
 #include <fstream>

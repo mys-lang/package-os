@@ -1,8 +1,8 @@
 from . import BinaryFile
-from . import TextFile
-from .utils import to_utf8
 from . import OsError
+from . import TextFile
 from . import cwd
+from .utils import to_utf8
 
 c"""source-before-namespace
 #include <fstream>
