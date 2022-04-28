@@ -433,7 +433,7 @@ def _touch(path: string):
     path_utf8 = to_utf8(path)
 
     c"""
-    std::ofstream MyFile((char *)path_utf8.m_bytes->data());
+    close(open((char *)path_utf8.m_bytes->data(), O_CREAT, 0666));
     """
 
 @test
@@ -787,3 +787,19 @@ def test_is_relative():
     assert Path("a/b").is_relative()
     assert Path("b").is_relative()
     assert Path("").is_relative()
+
+@test
+def test_touch():
+    path = Path("touch.txt")
+    path.rm(force=True)
+
+    path.touch()
+    assert path.exists()
+    assert path.read_text() == ""
+
+    path.write_text("Hi!")
+    assert path.read_text() == "Hi!"
+    path.touch()
+    assert path.read_text() == "Hi!"
+
+    path.rm(force=True)
