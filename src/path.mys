@@ -88,6 +88,35 @@ class Path:
 
         return name[last_dot_index:]
 
+    def with_name(self, name: string) -> Path:
+        """Returns a new path with given name.
+
+        """
+
+        if name in ["", "."] or name.starts_with('/'):
+            raise OsError(f"Invalid name '{name}'.")
+        elif self.name() == "":
+            raise OsError(f"Path '{self}' has no name.")
+        else:
+            return self.parent().join(name)
+
+    def with_stem(self, stem: string) -> Path:
+        """Returns a new path with given stem.
+
+        """
+
+        return self.with_name(stem + self.extension())
+
+    def with_extension(self, extension: string) -> Path:
+        """Returns a new path with given extension.
+
+        """
+
+        if (len(extension) > 0 and extension[0] != '.') or len(extension) == 1:
+            raise OsError(f"Invalid extension '{extension}'.")
+
+        return self.with_name(self.stem() + extension)
+
     def parent(self) -> Path:
         """The parent path.
 
@@ -111,6 +140,20 @@ class Path:
         """
 
         return self.join(str(other))
+
+    def is_absolute(self) -> bool:
+        """Check if absolute.
+
+        """
+
+        return len(self._parts) > 0 and self._parts[0] == "/"
+
+    def is_relative(self) -> bool:
+        """Check if relative.
+
+        """
+
+        return not self.is_absolute()
 
     def read_text(self) -> string:
         """Read file contents.
@@ -214,49 +257,6 @@ class Path:
         """
 
         _mv(self, dst)
-
-    def is_absolute(self) -> bool:
-        """Check if absolute.
-
-        """
-
-        return len(self._parts) > 0 and self._parts[0] == "/"
-
-    def is_relative(self) -> bool:
-        """Check if relative.
-
-        """
-
-        return not self.is_absolute()
-
-    def with_name(self, name: string) -> Path:
-        """Returns a new path with given name.
-
-        """
-
-        if name in ["", "."] or name.starts_with('/'):
-            raise OsError(f"Invalid name '{name}'.")
-        elif self.name() == "":
-            raise OsError(f"Path '{self}' has no name.")
-        else:
-            return self.parent().join(name)
-
-    def with_stem(self, stem: string) -> Path:
-        """Returns a new path with given stem.
-
-        """
-
-        return self.with_name(stem + self.extension())
-
-    def with_extension(self, extension: string) -> Path:
-        """Returns a new path with given extension.
-
-        """
-
-        if (len(extension) > 0 and extension[0] != '.') or len(extension) == 1:
-            raise OsError(f"Invalid extension '{extension}'.")
-
-        return self.with_name(self.stem() + extension)
 
     def __str__(self) -> string:
         return "/".join(self._parts).replace("//", "/")
