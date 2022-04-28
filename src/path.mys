@@ -160,28 +160,28 @@ class Path:
 
         """
 
-        return TextFile(str(self)).read()
+        return TextFile(self).read()
 
     def write_text(self, data: string):
         """Write file contents.
 
         """
 
-        TextFile(str(self), "w").write(data)
+        TextFile(self, "w").write(data)
 
     def read_binary(self) -> bytes:
         """Read file contents.
 
         """
 
-        return BinaryFile(str(self)).read()
+        return BinaryFile(self).read()
 
     def write_binary(self, data: bytes):
         """Write file contents.
 
         """
 
-        BinaryFile(str(self), "w").write(data)
+        BinaryFile(self, "w").write(data)
 
     def exists(self) -> bool:
         """Check for existence.

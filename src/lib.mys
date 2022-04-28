@@ -177,12 +177,12 @@ class BinaryFile:
     _data: bytes
     _fiber: Fiber
 
-    def __init__(self, path: string, mode: string = "r"):
+    def __init__(self, path: Path, mode: string = "r"):
         """Opens given file. Mode can be `r` or `w`.
 
         """
 
-        path_utf8 = to_utf8(path)
+        path_utf8 = to_utf8(str(path))
         self._fiber = current()
 
         c"""
@@ -294,7 +294,7 @@ class TextFile:
 
     _binary_file: BinaryFile
 
-    def __init__(self, path: string, mode: string = "r"):
+    def __init__(self, path: Path, mode: string = "r"):
         """Opens given file. Mode can be `r` or `w`.
 
         """
@@ -493,7 +493,7 @@ def test_which():
 
 @test
 def test_binary_file():
-    bf = BinaryFile("README.rst")
+    bf = BinaryFile(Path("README.rst"))
     data = bf.read()
     assert len(data) > 0
     bf.close()
@@ -505,7 +505,7 @@ def test_binary_file_not_found():
 
     try:
         ok = False
-        BinaryFile(str(filename))
+        BinaryFile(filename)
     except OsError as e:
         ok = True
 
@@ -518,10 +518,10 @@ def test_create_binary_file():
     filename = Path("test_create_binary_file.bin")
     filename.rm(force=True)
 
-    bf = BinaryFile(str(filename), "w")
+    bf = BinaryFile(filename, "w")
     bf.close()
 
-    bf = BinaryFile(str(filename))
+    bf = BinaryFile(filename)
     assert bf.read() == b""
 
     filename.rm(force=True)
@@ -531,11 +531,11 @@ def test_write_binary_file():
     filename = Path("test_write_binary_file.bin")
     filename.rm(force=True)
 
-    bf = BinaryFile(str(filename), "w")
+    bf = BinaryFile(filename, "w")
     bf.write(b"123")
     bf.close()
 
-    bf = BinaryFile(str(filename))
+    bf = BinaryFile(filename)
     assert bf.read() == b"123"
     bf.close()
 
@@ -546,11 +546,11 @@ def test_read_binary_file_with_slash_slash():
     filename = Path("test_read_binary_file_with_slash_slash.bin")
     filename.rm(force=True)
 
-    bf = BinaryFile(str(filename), "w")
+    bf = BinaryFile(filename, "w")
     bf.write(b"123")
     bf.close()
 
-    bf = BinaryFile("src///..//test_read_binary_file_with_slash_slash.bin")
+    bf = BinaryFile(Path("src///..//test_read_binary_file_with_slash_slash.bin"))
     assert bf.read() == b"123"
     bf.close()
 
@@ -558,7 +558,7 @@ def test_read_binary_file_with_slash_slash():
 
 @test
 def test_text_file():
-    tf = TextFile("README.rst")
+    tf = TextFile(Path("README.rst"))
     data = tf.read()
     assert "Os" in data
     tf.close()
@@ -568,11 +568,11 @@ def test_write_text_file():
     filename = Path("test_write_text_file.txt")
     filename.rm(force=True)
 
-    tf = TextFile(str(filename), "w")
+    tf = TextFile(filename, "w")
     tf.write("123")
     tf.close()
 
-    tf = TextFile(str(filename))
+    tf = TextFile(filename)
     assert tf.read() == "123"
     tf.close()
 
@@ -582,7 +582,7 @@ def test_write_text_file():
 def test_text_file_does_not_exist():
     try:
         message = ""
-        TextFile("flapp.flopp")
+        TextFile(Path("flapp.flopp"))
     except OsError as e:
         message = e.message
 
@@ -598,13 +598,13 @@ def test_tar():
 
     # Create.
     directory.mkdir()
-    BinaryFile("test_tar/hello.txt", "w").write(b"hi\n")
+    BinaryFile(Path("test_tar/hello.txt"), "w").write(b"hi\n")
     tar(archive, create=True, path=directory)
 
     # Extract.
     directory.rm(recursive=True, force=True)
     tar(archive, extract=True)
-    assert BinaryFile("test_tar/hello.txt").read() == b"hi\n"
+    assert BinaryFile(Path("test_tar/hello.txt")).read() == b"hi\n"
 
     directory.rm(recursive=True, force=True)
     archive.rm(recursive=True, force=True)
