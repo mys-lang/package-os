@@ -215,6 +215,49 @@ class Path:
 
         _mv(self, dst)
 
+    def is_absolute(self) -> bool:
+        """Check if absolute.
+
+        """
+
+        return len(self._parts) > 0 and self._parts[0] == "/"
+
+    def is_relative(self) -> bool:
+        """Check if relative.
+
+        """
+
+        return not self.is_absolute()
+
+    def with_name(self, name: string) -> Path:
+        """Returns a new path with given name.
+
+        """
+
+        if name in ["", "."] or name.starts_with('/'):
+            raise OsError(f"Invalid name '{name}'.")
+        elif self.name() == "":
+            raise OsError(f"Path '{self}' has no name.")
+        else:
+            return self.parent().join(name)
+
+    def with_stem(self, stem: string) -> Path:
+        """Returns a new path with given stem.
+
+        """
+
+        return self.with_name(stem + self.extension())
+
+    def with_extension(self, extension: string) -> Path:
+        """Returns a new path with given extension.
+
+        """
+
+        if (len(extension) > 0 and extension[0] != '.') or len(extension) == 1:
+            raise OsError(f"Invalid extension '{extension}'.")
+
+        return self.with_name(self.stem() + extension)
+
     def __str__(self) -> string:
         return "/".join(self._parts).replace("//", "/")
 
@@ -617,3 +660,130 @@ def test_mv():
     assert Path("mv-2/foo/fie.txt").exists()
 
     Path("mv-2").rm(recursive=True, force=True)
+
+@test
+def test_with_name():
+    try:
+        assert Path("").with_name("foo.txt") == Path("")
+        assert False
+    except OsError:
+        pass
+
+    assert Path("foo.log").with_name("foo.txt") == Path("foo.txt")
+    assert Path("a/b").with_name("c") == Path("a/c")
+
+    try:
+        Path("/").with_name("c")
+        assert False
+    except OsError:
+        pass
+
+    try:
+        message = ""
+        Path("/k").with_name("")
+    except OsError as error:
+        message = error.message
+
+    assert message == "Invalid name ''."
+
+    try:
+        message = ""
+        Path("/k").with_name(".")
+    except OsError as error:
+        message = error.message
+
+    assert message == "Invalid name '.'."
+
+    try:
+        message = ""
+        Path("/k").with_name("/a")
+    except OsError as error:
+        message = error.message
+
+    assert message == "Invalid name '/a'."
+
+@test
+def test_with_stem():
+    assert Path("foo.log").with_stem("bar") == Path("bar.log")
+    assert Path("foo").with_stem("bar") == Path("bar")
+    assert Path("a/b.c").with_stem("d") == Path("a/d.c")
+    path = Path("a").with_stem("b.c")
+    assert path == Path("b.c")
+    assert path.stem() == "b"
+    assert path.extension() == ".c"
+    assert Path("a.b").with_stem("") == Path(".b")
+
+    try:
+        message = ""
+        Path(".").with_stem("a")
+    except OsError as error:
+        message = error.message
+
+    assert message == "Path '' has no name."
+
+    try:
+        message = ""
+        Path("/").with_stem("a")
+    except OsError as error:
+        message = error.message
+
+    assert message == "Path '/' has no name."
+
+    try:
+        message = ""
+        Path("a").with_stem("")
+    except OsError as error:
+        message = error.message
+
+    assert message == "Invalid name ''."
+
+@test
+def test_with_extension():
+    assert Path("foo.log").with_extension(".txt") == Path("foo.txt")
+    assert Path("a").with_extension(".b") == Path("a.b")
+    assert Path("a").with_extension("..b") == Path("a..b")
+    assert Path("a").with_extension("") == Path("a")
+    assert Path("a.b").with_extension("") == Path("a")
+    assert Path("a.b.c").with_extension("") == Path("a.b")
+    assert Path("a.b.c").with_extension("").with_extension("") == Path("a")
+    assert Path("a").with_extension("..") == Path("a..")
+
+    try:
+        message = ""
+        Path("a").with_extension("b")
+    except OsError as error:
+        message = error.message
+
+    assert message == "Invalid extension 'b'."
+
+    try:
+        message = ""
+        Path("a").with_extension(".")
+    except OsError as error:
+        message = error.message
+
+    assert message == "Invalid extension '.'."
+
+    try:
+        message = ""
+        Path("").with_extension(".b")
+    except OsError as error:
+        message = error.message
+
+    assert message == "Path '' has no name."
+
+@test
+def test_is_absolute():
+    assert Path("/").is_absolute()
+    assert Path("/a/b").is_absolute()
+    assert not Path("a/b").is_absolute()
+    assert not Path("b").is_absolute()
+    assert not Path("").is_absolute()
+
+@test
+def test_is_relative():
+    assert not Path("/").is_relative()
+    assert not Path("/a/b").is_relative()
+    assert Path("a/b").is_relative()
+    assert Path("b").is_relative()
+    assert Path("").is_relative()
