@@ -5,8 +5,14 @@ from . import OsError
 from . import cwd
 
 c"""source-before-namespace
+#include <fstream>
+#include <filesystem>
+#include <cstdlib>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
 
 static inline int chmod_wrapper(const char *name_p, u32 mode)
 {
