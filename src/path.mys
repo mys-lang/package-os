@@ -88,35 +88,6 @@ class Path:
 
         return name[last_dot_index:]
 
-    def with_name(self, name: string) -> Path:
-        """Returns a new path with given name.
-
-        """
-
-        if name in ["", "."] or name.starts_with('/'):
-            raise OsError(f"Invalid name '{name}'.")
-        elif self.name() == "":
-            raise OsError(f"Path '{self}' has no name.")
-        else:
-            return self.parent().join(name)
-
-    def with_stem(self, stem: string) -> Path:
-        """Returns a new path with given stem.
-
-        """
-
-        return self.with_name(stem + self.extension())
-
-    def with_extension(self, extension: string) -> Path:
-        """Returns a new path with given extension.
-
-        """
-
-        if (len(extension) > 0 and extension[0] != '.') or len(extension) == 1:
-            raise OsError(f"Invalid extension '{extension}'.")
-
-        return self.with_name(self.stem() + extension)
-
     def parent(self) -> Path:
         """The parent path.
 
@@ -155,6 +126,35 @@ class Path:
 
         return not self.is_absolute()
 
+    def with_name(self, name: string) -> Path:
+        """Returns a new path with given name.
+
+        """
+
+        if name in ["", "."] or name.starts_with('/'):
+            raise OsError(f"Invalid name '{name}'.")
+        elif self.name() == "":
+            raise OsError(f"Path '{self}' has no name.")
+        else:
+            return self.parent().join(name)
+
+    def with_stem(self, stem: string) -> Path:
+        """Returns a new path with given stem.
+
+        """
+
+        return self.with_name(stem + self.extension())
+
+    def with_extension(self, extension: string) -> Path:
+        """Returns a new path with given extension.
+
+        """
+
+        if (len(extension) > 0 and extension[0] != '.') or len(extension) == 1:
+            raise OsError(f"Invalid extension '{extension}'.")
+
+        return self.with_name(self.stem() + extension)
+
     def read_text(self) -> string:
         """Read file contents.
 
@@ -188,7 +188,14 @@ class Path:
 
         """
 
-        return _exists(str(self))
+        res: bool = False
+        path_utf8 = to_utf8(str(self))
+
+        c"""
+        res = std::filesystem::exists((const char *)path_utf8.m_bytes->data());
+        """
+
+        return res
 
     def mkdir(self, exists_ok: bool = False):
         """Create directories.
@@ -197,14 +204,43 @@ class Path:
 
         """
 
-        _mkdir(str(self), exists_ok)
+        path_utf8 = to_utf8(str(self))
+        message: string = None
+
+        c"""
+        std::error_code ec;
+        bool ok;
+
+        ok = std::filesystem::create_directories((char *)path_utf8.m_bytes->data(), ec);
+
+        if (!ok) {
+            if (ec) {
+                message = String(ec.message());
+            } else if (!exists_ok) {
+                message = String(strerror(EEXIST));
+            }
+        }
+        """
+
+        if message is not None:
+            raise OsError(message)
 
     def chmod(self, mode: u32):
         """Change permissions.
 
         """
 
-        _chmod(str(self), mode)
+        message: string = None
+        path_utf8 = to_utf8(str(self))
+
+        c"""
+        if (chmod_wrapper((const char *)path_utf8.m_bytes->data(), mode) != 0) {
+            message = String(strerror(errno));
+        }
+        """
+
+        if message is not None:
+            raise OsError(message)
 
     def ls(self) -> [Path]:
         """Returns all files and folders.
@@ -216,7 +252,18 @@ class Path:
         if dpath == "":
             dpath = "."
 
-        return [Path(path) for path in _ls(dpath)]
+        path_utf8 = to_utf8(dpath)
+        entries: [Path] = []
+
+        c"""
+        char *path_p = (char *)path_utf8.m_bytes->data();
+
+        for (const auto& entry : std::filesystem::directory_iterator(path_p)) {
+            entries->append(mys::make_shared<Path>(entry.path().filename().c_str()));
+        }
+        """
+
+        return entries
 
     def rm(self, recursive: bool = False, force: bool = False):
         """Remove files and directories.
@@ -228,213 +275,108 @@ class Path:
 
         """
 
-        _rm(str(self), recursive, force)
+        path_utf8 = to_utf8(str(self))
+        message: string = None
+
+        c"""
+        std::error_code ec;
+        bool ok;
+        char *path_p = (char *)path_utf8.m_bytes->data();
+
+        if (recursive) {
+            ok = (std::filesystem::remove_all(path_p, ec) > 0);
+        } else {
+            ok = std::filesystem::remove(path_p, ec);
+        }
+
+        if (!ok) {
+            if (!force) {
+                if (ec) {
+                    message = String(ec.message());
+                } else {
+                    message = String(strerror(ENOENT));
+                }
+            }
+        }
+        """
+
+        if message is not None:
+            raise OsError(message)
 
     def touch(self):
         """Update modification time and creates if missing.
 
         """
 
-        _touch(str(self))
+        path_utf8 = to_utf8(str(self))
+
+        c"""
+        close(open((char *)path_utf8.m_bytes->data(), O_CREAT, 0666));
+        """
 
     def cd(self):
         """Change directory.
 
         """
 
-        _cd(self)
+        path_utf8 = to_utf8(str(self))
+        message: string = None
+
+        c"""
+        std::error_code ec;
+
+        std::filesystem::current_path((char *)path_utf8.m_bytes->data(), ec);
+
+        if (ec) {
+            message = String(ec.message());
+        }
+        """
+
+        if message is not None:
+            raise OsError(message)
 
     def cp(self, dst: Path, recursive: bool = False):
         """Copy files and directories.
 
         """
 
-        _cp(self, dst, recursive)
+        src_utf8 = to_utf8(str(self))
+        dst_utf8 = to_utf8(str(dst))
+        message: string = None
+
+        c"""
+        std::error_code ec;
+        std::filesystem::copy_options options;
+
+        if (recursive) {
+            options = std::filesystem::copy_options::recursive;
+        } else {
+            options = std::filesystem::copy_options::none;
+        }
+
+        std::filesystem::copy((char *)src_utf8.m_bytes->data(),
+                              (char *)dst_utf8.m_bytes->data(),
+                              options,
+                              ec);
+
+        if (ec) {
+            message = String(ec.message());
+        }
+        """
+
+        if message is not None:
+            raise OsError(message)
 
     def mv(self, dst: Path):
         """Move files and directories.
 
         """
 
-        _mv(self, dst)
+        self.cp(dst, recursive=True)
+        self.rm(recursive=True, force=True)
 
     def __str__(self) -> string:
         return "/".join(self._parts).replace("//", "/")
-
-def _cd(path: Path):
-    path_utf8 = to_utf8(str(path))
-    message: string = None
-
-    c"""
-    std::error_code ec;
-
-    std::filesystem::current_path((char *)path_utf8.m_bytes->data(), ec);
-
-    if (ec) {
-        message = String(ec.message());
-    }
-    """
-
-    if message is not None:
-        raise OsError(message)
-
-def _cp(src: Path, dst: Path, recursive: bool = False):
-    """Copy files and directories.
-
-    """
-
-    src_utf8 = to_utf8(str(src))
-    dst_utf8 = to_utf8(str(dst))
-    message: string = None
-
-    c"""
-    std::error_code ec;
-    std::filesystem::copy_options options;
-
-    if (recursive) {
-        options = std::filesystem::copy_options::recursive;
-    } else {
-        options = std::filesystem::copy_options::none;
-    }
-
-    std::filesystem::copy((char *)src_utf8.m_bytes->data(),
-                          (char *)dst_utf8.m_bytes->data(),
-                          options,
-                          ec);
-
-    if (ec) {
-        message = String(ec.message());
-    }
-    """
-
-    if message is not None:
-        raise OsError(message)
-
-def _mv(src: Path, dst: Path):
-    """Move files and directories.
-
-    """
-
-    _cp(src, dst, recursive=True)
-    src.rm(recursive=True, force=True)
-
-def _ls(path: string = ".") -> [string]:
-    """Returns all files and folders in given directory.
-
-    """
-
-    path_utf8 = to_utf8(path)
-    entries: [string] = []
-
-    c"""
-    char *path_p = (char *)path_utf8.m_bytes->data();
-
-    for (const auto& entry : std::filesystem::directory_iterator(path_p)) {
-        entries->append(entry.path().filename().c_str());
-    }
-    """
-
-    return entries
-
-def _rm(path: string, recursive: bool = False, force: bool = False):
-    """Remove files and directories.
-
-    Give `recursive` as ``True`` to remove all files and folders
-    recursivly.
-
-    Give `force` as ``True`` to ignore errors.
-
-    """
-
-    path_utf8 = to_utf8(path)
-    message: string = None
-
-    c"""
-    std::error_code ec;
-    bool ok;
-
-    if (recursive) {
-        ok = (std::filesystem::remove_all((char *)path_utf8.m_bytes->data(), ec) > 0);
-    } else {
-        ok = std::filesystem::remove((char *)path_utf8.m_bytes->data(), ec);
-    }
-
-    if (!ok) {
-        if (!force) {
-            if (ec) {
-                message = String(ec.message());
-            } else {
-                message = String(strerror(ENOENT));
-            }
-        }
-    }
-    """
-
-    if message is not None:
-        raise OsError(message)
-
-def _mkdir(path: string, exists_ok: bool = False):
-    """Create directories.
-
-    Give `exists_ok` as ``True`` to ignore errors.
-
-    """
-
-    path_utf8 = to_utf8(path)
-    message: string = None
-
-    c"""
-    std::error_code ec;
-    bool ok;
-
-    ok = std::filesystem::create_directories((char *)path_utf8.m_bytes->data(), ec);
-
-    if (!ok) {
-        if (ec) {
-            message = String(ec.message());
-        } else if (!exists_ok) {
-            message = String(strerror(EEXIST));
-        }
-    }
-    """
-
-    if message is not None:
-        raise OsError(message)
-
-def _exists(path: string) -> bool:
-    res: bool = False
-    path_utf8 = to_utf8(path)
-
-    c"""
-    res = std::filesystem::exists((const char *)path_utf8.m_bytes->data());
-    """
-
-    return res
-
-def _chmod(path: string, mode: u32):
-    """Change permissions of given file.
-
-    """
-
-    message: string = None
-    path_utf8 = to_utf8(path)
-
-    c"""
-    if (chmod_wrapper((const char *)path_utf8.m_bytes->data(), mode) != 0) {
-        message = String(strerror(errno));
-    }
-    """
-
-    if message is not None:
-        raise OsError(message)
-
-def _touch(path: string):
-    # ToDo: Only update mtime if exists.
-    path_utf8 = to_utf8(path)
-
-    c"""
-    close(open((char *)path_utf8.m_bytes->data(), O_CREAT, 0666));
-    """
 
 @test
 def test_path():
@@ -531,65 +473,65 @@ def test_ls():
 
 @test
 def test_rm():
-    directory = "test_rm"
-    _rm(directory, recursive=True, force=True)
-    _mkdir(directory)
-    _rm(directory, recursive=True)
-    _mkdir(f"{directory}/foo/bar", exists_ok=True)
+    directory = Path("test_rm")
+    directory.rm(recursive=True, force=True)
+    directory.mkdir()
+    directory.rm(recursive=True)
+    directory.join("foo/bar").mkdir(exists_ok=True)
 
     try:
         message = ""
-        _rm(directory)
+        directory.rm()
     except OsError as e:
         message = e.message
 
     assert message == "Directory not empty"
 
-    _rm(directory, recursive=True)
+    directory.rm(recursive=True)
 
 @test
 def test_rm_single_file():
-    filename = "test_rm_single_file"
-    _touch(filename)
-    _rm(filename)
+    filename = Path("test_rm_single_file")
+    filename.touch()
+    filename.rm()
 
     try:
         message = ""
-        _rm(filename)
+        filename.rm()
     except OsError as e:
         message = e.message
 
     assert message == "No such file or directory"
 
-    _rm(filename, force=True)
+    filename.rm(force=True)
 
 @test
 def test_chmod():
-    filename = "cmod"
+    filename = Path("cmod")
 
-    _rm(filename, force=True)
+    filename.rm(force=True)
 
     try:
         message = ""
-        _chmod(filename, 0o666)
+        filename.chmod(0o666)
     except OsError as e:
         message = e.message
 
     assert message == "No such file or directory"
 
-    _touch(filename)
-    _chmod(filename, 0o666)
-    _rm(filename)
+    filename.touch()
+    filename.chmod(0o666)
+    filename.rm()
 
 @test
 def test_mkdir():
-    directory = "adir"
-    _rm(directory, force=True)
-    _mkdir(directory, exists_ok=True)
+    directory = Path("adir")
+    directory.rm(force=True)
+    directory.mkdir(exists_ok=True)
 
     try:
         message = ""
-        _mkdir(directory)
+        directory.mkdir()
     except OsError as e:
         message = e.message
 
