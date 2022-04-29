@@ -323,10 +323,18 @@ class Path:
         """
 
         path_utf8 = to_utf8(str(self))
+        fd = 0
 
         c"""
-        close(open((char *)path_utf8.m_bytes->data(), O_CREAT, 0666));
+        fd = open((char *)path_utf8.m_bytes->data(), O_CREAT, 0666);
+
+        if (fd != -1) {
+            close(fd);
+        }
         """
+
+        if fd == -1:
+            raise OsError(f"Touch failed.")
 
     def cd(self):
         """Change directory.
@@ -496,8 +504,8 @@ def test_rm():
     try:
         message = ""
         directory.rm()
-    except OsError as e:
-        message = e.message
+    except OsError as error:
+        message = error.message
 
     assert message == "Directory not empty"
 
@@ -512,8 +520,8 @@ def test_rm_single_file():
     try:
         message = ""
         filename.rm()
-    except OsError as e:
-        message = e.message
+    except OsError as error:
+        message = error.message
 
     assert message == "No such file or directory"
 
@@ -528,8 +536,8 @@ def test_chmod():
     try:
         message = ""
         filename.chmod(0o666)
-    except OsError as e:
-        message = e.message
+    except OsError as error:
+        message = error.message
 
     assert message == "No such file or directory"
 
@@ -546,28 +554,28 @@ def test_mkdir():
     try:
         message = ""
         directory.mkdir()
-    except OsError as e:
-        message = e.message
+    except OsError as error:
+        message = error.message
 
     assert message == "File exists"
 
 @test
 def test_cd():
-    Path("ccc").rm(force=True)
+    Path("ccc").rm(recursive=True, force=True)
     path = cwd()
 
     try:
         message = ""
         Path("ccc").cd()
-    except OsError as e:
-        message = e.message
+    except OsError as error:
+        message = error.message
 
     assert message == "No such file or directory"
 
     Path("ccc").mkdir()
     Path("ccc").cd()
     assert cwd() != path
-    Path("ccc/apa").touch()
+    Path("apa").touch()
     Path("..").cd()
     assert cwd() == path
     Path("ccc/apa").exists()
@@ -759,3 +767,11 @@ def test_touch():
     assert path.read_text() == "Hi!"
 
     path.rm(force=True)
+
+    try:
+        message = ""
+        Path("k/k/k/k/k/k/a").touch()
+    except OsError as error:
+        message = error.message
+
+    assert message == "Touch failed."

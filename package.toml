@@ -1,5 +1,5 @@
 [package]
 name = "os"
-version = "0.73.0"
+version = "0.74.0"
 authors = ["Erik Moqvist <erik.moqvist@gmail.com>"]
 description = "OS utilities."
