@@ -183,6 +183,20 @@ class Path:
 
         BinaryFile(self, "w").write(data)
 
+    def open_binary(self, mode: string = "r") -> BinaryFile:
+        """Open binary file.
+
+        """
+
+        return BinaryFile(self, mode)
+
+    def open_text(self, mode: string = "r") -> TextFile:
+        """Open binary file.
+
+        """
+
+        return TextFile(self, mode)
+
     def exists(self) -> bool:
         """Check for existence.
 
