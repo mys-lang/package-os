@@ -9,7 +9,6 @@ Files and folders example
 
 .. code-block:: mys
 
-   from os import cd
    from os import cwd
    from os import which
    from os.path import Path
@@ -18,17 +17,19 @@ Files and folders example
        if which("ls") is not None:
            print("executable ls found")
 
-       Path("foo").mkdir()
-       cd(Path("foo"))
+       foo = Path("foo")
+       foo.mkdir()
+       foo.cd()
        print("Current working directory is", cwd())
-       Path("bar").touch()
+       bar = Path("bar")
+       bar.touch()
 
-       if Path("bar").exists():
+       if bar.exists():
            print("bar exists")
 
        print(f"Files:", Path(".").ls())
-       cd(Path(".."))
-       Path("foo").rm(recursive=True, force=True)
+       Path("..").cd()
+       foo.rm(recursive=True, force=True)
 
 Environment variables example
 -----------------------------

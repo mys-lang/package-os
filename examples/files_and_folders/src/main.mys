@@ -6,14 +6,16 @@ def main():
     if which("ls") is not None:
         print("executable ls found")
 
-    Path("foo").mkdir()
-    Path("foo").cd()
+    foo = Path("foo")
+    foo.mkdir()
+    foo.cd()
     print("Current working directory is", cwd())
-    Path("bar").touch()
+    bar = Path("bar")
+    bar.touch()
 
-    if Path("bar").exists():
+    if bar.exists():
         print("bar exists")
 
     print(f"Files:", Path(".").ls())
     Path("..").cd()
-    Path("foo").rm(recursive=True, force=True)
+    foo.rm(recursive=True, force=True)
