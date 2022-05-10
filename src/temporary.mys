@@ -7,7 +7,7 @@ c"""source-before-namespace
 #include <unistd.h>
 """
 
-def _create_template() -> bytes:
+func _create_template() -> bytes:
     tmpdir = getenv("TMPDIR", "/tmp").strip_right("/")
     name = f"{tmpdir}/tmp.XXXXXX".to_utf8()
     name += 0
@@ -22,7 +22,7 @@ class File:
     _path: Path
     _remove: bool
 
-    def __init__(self, remove: bool = True):
+    func __init__(self, remove: bool = True):
         self._path = None
         self._remove = remove
         name = _create_template()
@@ -40,14 +40,14 @@ class File:
         if self._path is None:
             raise OsError("Failed to create temporary file.")
 
-    def __del__(self):
+    func __del__(self):
         self._del()
 
-    def _del(self):
+    func _del(self):
         if self._remove:
             self._path.rm(force=True)
 
-    def path(self) -> Path:
+    func path(self) -> Path:
         """The file system path to the file.
 
         """
@@ -62,7 +62,7 @@ class Directory:
     _path: Path
     _remove: bool
 
-    def __init__(self, remove: bool = True):
+    func __init__(self, remove: bool = True):
         self._path = None
         self._remove = remove
         name = _create_template()
@@ -77,14 +77,14 @@ class Directory:
         if self._path is None:
             raise OsError("Failed to create temporary directory.")
 
-    def __del__(self):
+    func __del__(self):
         self._del()
 
-    def _del(self):
+    func _del(self):
         if self._remove:
             self._path.rm(force=True, recursive=True)
 
-    def path(self) -> Path:
+    func path(self) -> Path:
         """The file system path to the directory.
 
         """
@@ -92,37 +92,37 @@ class Directory:
         return self._path
 
 @test
-def test_file():
+func test_file():
     tmpfile = File()
     assert tmpfile.path().exists()
 
-def _create_files() -> (Path, Path):
+func _create_files() -> (Path, Path):
     return (File().path(), File(remove=False).path())
 
 @test
-def test_file_remove():
+func test_file_remove():
     path_remove_true, path_remove_false = _create_files()
     assert not path_remove_true.exists()
     assert path_remove_false.exists()
     path_remove_false.rm()
 
 @test
-def test_directory():
+func test_directory():
     tmpdir = Directory()
     assert tmpdir.path().exists()
 
-def _create_directories() -> (Path, Path):
+func _create_directories() -> (Path, Path):
     return (Directory().path(), Directory(remove=False).path())
 
 @test
-def test_directory_remove():
+func test_directory_remove():
     path_remove_true, path_remove_false = _create_directories()
     assert not path_remove_true.exists()
     assert path_remove_false.exists()
     path_remove_false.rm()
 
 @test
-def test_remove_directory():
+func test_remove_directory():
     tmpdir = Directory()
     original_path = cwd()
     tmpdir.path().cd()

@@ -7,7 +7,7 @@ class Signal:
     Terminate = c"SIGTERM"
     Interrupt = c"SIGINT"
 
-def enable(signal: Signal):
+func enable(signal: Signal):
     """Enable given signal.
 
     """
@@ -16,7 +16,7 @@ def enable(signal: Signal):
     mys::enable_signal(signal);
     """
 
-def disable(signal: Signal):
+func disable(signal: Signal):
     """Disable given signal.
 
     """

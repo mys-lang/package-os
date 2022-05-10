@@ -2,7 +2,7 @@ from os import cwd
 from os import which
 from os.path import Path
 
-def main():
+func main():
     if which("ls") is not None:
         print("executable ls found")
 

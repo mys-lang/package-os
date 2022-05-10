@@ -1,6 +1,6 @@
 from os import nproc
 
-def main():
+func main():
     print("nproc():              ", nproc())
     print("nproc(all=True):      ", nproc(all=True))
     print("nproc(ignore=1):      ", nproc(ignore=1))

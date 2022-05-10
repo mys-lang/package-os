@@ -5,7 +5,7 @@ c"""source-before-namespace
 #include <unistd.h>
 """
 
-def set_to_raw_mode(fd: i64):
+func set_to_raw_mode(fd: i64):
     """Set the mode of given file descriptor to raw.
 
     """
@@ -33,7 +33,7 @@ def set_to_raw_mode(fd: i64):
     if not ok:
         raise OsError(f"Failed to set fd {fd} to raw mode.")
 
-def set_to_cbreak_mode(fd: i64):
+func set_to_cbreak_mode(fd: i64):
     """Set the mode of given file descriptor to cbreak.
 
     """
@@ -57,7 +57,7 @@ def set_to_cbreak_mode(fd: i64):
     if not ok:
         raise OsError(f"Failed to set fd {fd} to cbreak mode.")
 
-def is_tty(fd: i64) -> bool:
+func is_tty(fd: i64) -> bool:
     """Returns True if given file descriptor is a TTY, False otherwise.
 
     """
@@ -71,7 +71,7 @@ def is_tty(fd: i64) -> bool:
     return tty
 
 @test
-def test_set_to_raw_mode_bad_fd():
+func test_set_to_raw_mode_bad_fd():
     try:
         message = ""
         set_to_raw_mode(-1)
@@ -81,7 +81,7 @@ def test_set_to_raw_mode_bad_fd():
     assert message == "Failed to set fd -1 to raw mode."
 
 @test
-def test_set_to_cbreak_mode_bad_fd():
+func test_set_to_cbreak_mode_bad_fd():
     try:
         message = ""
         set_to_cbreak_mode(-1)
@@ -91,5 +91,5 @@ def test_set_to_cbreak_mode_bad_fd():
     assert message == "Failed to set fd -1 to cbreak mode."
 
 @test
-def test_is_tty():
+func test_is_tty():
     assert not is_tty(-1)

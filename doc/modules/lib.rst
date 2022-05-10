@@ -13,7 +13,7 @@ Files and folders example
    from os import which
    from os.path import Path
 
-   def main():
+   func main():
        if which("ls") is not None:
            print("executable ls found")
 
@@ -42,7 +42,7 @@ An example of how to use environment variables.
    from os import setenv
    from os import getenv
 
-   def main():
+   func main():
        print("Before:", getenv("FOOBAR", "ho"))
        setenv("FOOBAR", "hi")
        print("After: ", getenv("FOOBAR"))

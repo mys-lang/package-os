@@ -14,7 +14,7 @@ The code:
    # ToDo: Should not be needed.
    from os import Stdin
 
-   def main():
+   func main():
        if is_tty(0):
            set_to_cbreak_mode(0)
 

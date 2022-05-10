@@ -36,7 +36,7 @@ class CompletedProcess:
     stdout: bytes
     stderr: bytes
 
-def run(command: string) -> CompletedProcess:
+func run(command: string) -> CompletedProcess:
     """Run given command in a subprocess and return it's exit code and
     output once completed.
 
@@ -82,14 +82,14 @@ def run(command: string) -> CompletedProcess:
     return completed_process
 
 @test
-def test_run():
+func test_run():
     proc = run("echo hej")
     assert proc.exit_code == 0
     assert string(proc.stdout) == "hej\n"
     assert string(proc.stderr) == ""
 
 @test
-def test_run_command_not_found():
+func test_run_command_not_found():
     proc = run("mys-999")
     assert proc.exit_code != 0
     assert string(proc.stdout) == ""

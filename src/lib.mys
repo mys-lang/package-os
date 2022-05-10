@@ -30,7 +30,7 @@ static inline void unsetenv_wrapper(const char *name_p)
 
 class Stdin:
 
-    def get(self) -> i32:
+    func get(self) -> i32:
         """Returns the next byte from standard input (stdin), or -1 if end of
         input is reached.
 
@@ -50,21 +50,21 @@ class Stdin:
 
 class Stdout:
 
-    def put(self, value: u8):
+    func put(self, value: u8):
         """Writes given byte to standard output (stdout).
 
         """
 
         c"putchar(value);"
 
-    def write(self, data: bytes):
+    func write(self, data: bytes):
         """Writes given bytes to standard output (stdout).
 
         """
 
         c"fwrite(data.m_bytes->data(), 1, data.m_bytes->size(), stdout);"
 
-    def write(self, data: bytes, offset: i64, count: i64):
+    func write(self, data: bytes, offset: i64, count: i64):
         """Writes given bytes to standard output (stdout).
 
         """
@@ -76,7 +76,7 @@ class Stdout:
         if count > 0:
             c"fwrite(&data.m_bytes->data()[offset], 1, count, stdout);"
 
-    def flush(self):
+    func flush(self):
         """Flush output buffer.
 
         """
@@ -88,7 +88,7 @@ STDOUT: Stdout = Stdout()
 
 _ENV: {string: string} = _load_env()
 
-def _load_env() -> {string: string}:
+func _load_env() -> {string: string}:
     variables = {}
     line: string = None
 
@@ -177,7 +177,7 @@ class BinaryFile:
     _data: bytes
     _fiber: Fiber
 
-    def __init__(self, path: Path, mode: string = "r"):
+    func __init__(self, path: Path, mode: string = "r"):
         """Opens given file. Mode can be `r` or `w`.
 
         """
@@ -219,10 +219,10 @@ class BinaryFile:
 
         self._fiber = None
 
-    def __del__(self):
+    func __del__(self):
         self.close()
 
-    def close(self):
+    func close(self):
         """Close the file. The file is closed automatically in the destructor
         if not already closed.
 
@@ -235,7 +235,7 @@ class BinaryFile:
         }
         """
 
-    def read(self) -> bytes:
+    func read(self) -> bytes:
         """Read from the file.
 
         """
@@ -262,7 +262,7 @@ class BinaryFile:
 
         return self._data
 
-    def write(self, data: bytes):
+    func write(self, data: bytes):
         """Write to the file.
 
         """
@@ -294,14 +294,14 @@ class TextFile:
 
     _binary_file: BinaryFile
 
-    def __init__(self, path: Path, mode: string = "r"):
+    func __init__(self, path: Path, mode: string = "r"):
         """Opens given file. Mode can be `r` or `w`.
 
         """
 
         self._binary_file = BinaryFile(path, mode)
 
-    def close(self):
+    func close(self):
         """Close the file. The file is closed automatically in the destructor
         if not already closed.
 
@@ -309,21 +309,21 @@ class TextFile:
 
         self._binary_file.close()
 
-    def read(self) -> string:
+    func read(self) -> string:
         """Read from the file.
 
         """
 
         return string(self._binary_file.read())
 
-    def write(self, data: string):
+    func write(self, data: string):
         """Write to the file.
 
         """
 
         self._binary_file.write(data.to_utf8())
 
-def which(executable: string) -> Path:
+func which(executable: string) -> Path:
     """Locate given executable in the user's path.
 
     """
@@ -336,7 +336,7 @@ def which(executable: string) -> Path:
 
     raise OsError(f"Executable '{executable}' not found.")
 
-def cwd() -> Path:
+func cwd() -> Path:
     path: Path = None
 
     c"""
@@ -345,14 +345,14 @@ def cwd() -> Path:
 
     return path
 
-def env() -> {string: string}:
+func env() -> {string: string}:
     """Returns all environment variables.
 
     """
 
     return _ENV
 
-def getenv(name: string) -> string:
+func getenv(name: string) -> string:
     """Get given environment variable.
 
     """
@@ -362,7 +362,7 @@ def getenv(name: string) -> string:
 
     return getenv(name, None)
 
-def getenv(name: string, default: string) -> string:
+func getenv(name: string, default: string) -> string:
     """Get given environment variable. Returns given default value if the
     environment variable is not set.
 
@@ -370,7 +370,7 @@ def getenv(name: string, default: string) -> string:
 
     return _ENV.get(name, default)
 
-def setenv(name: string, value: string):
+func setenv(name: string, value: string):
     """Set given environment variable.
 
     """
@@ -385,7 +385,7 @@ def setenv(name: string, value: string):
 
     _ENV[name] = value
 
-def unsetenv(name: string):
+func unsetenv(name: string):
     """Unset given environment variable.
 
     """
@@ -398,7 +398,7 @@ def unsetenv(name: string):
 
     _ENV.pop(name, None)
 
-def tar(archive: Path,
+func tar(archive: Path,
         extract: bool = False,
         create: bool = False,
         strip_components: i64 = 0,
@@ -420,7 +420,7 @@ def tar(archive: Path,
     else:
         raise OsError("No tar operation given.")
 
-def nproc(all: bool = False, ignore: i64 = 0) -> i64:
+func nproc(all: bool = False, ignore: i64 = 0) -> i64:
     """Get the number of processing units available.
 
     """
@@ -440,18 +440,18 @@ def nproc(all: bool = False, ignore: i64 = 0) -> i64:
     return max(1, count)
 
 @test
-def test_nproc():
+func test_nproc():
     assert nproc() > 0
     assert nproc(all=True) >= nproc()
     assert nproc(ignore=1) in [1, nproc() - 1]
     assert nproc(ignore=nproc()) == 1
 
 @test
-def test_env_get_pwd():
+func test_env_get_pwd():
     assert getenv("PWD") is not None
 
 @test
-def test_env_get_set_unset():
+func test_env_get_set_unset():
     try:
         message = ""
         getenv("FOOBAR")
@@ -468,12 +468,12 @@ def test_env_get_set_unset():
     assert getenv("FOOBAR", None) is None
 
 @test
-def test_all():
+func test_all():
     assert env() is not None
     assert "PWD" in env()
 
 @test
-def test_cwd():
+func test_cwd():
     directory = Path("cmd")
     directory.mkdir(exists_ok=True)
     directory.cd()
@@ -482,7 +482,7 @@ def test_cwd():
     directory.rm()
 
 @test
-def test_which():
+func test_which():
     try:
         which("mys-xyz123")
         assert False
@@ -492,14 +492,14 @@ def test_which():
     assert which("ls") is not None
 
 @test
-def test_binary_file():
+func test_binary_file():
     bf = BinaryFile(Path("README.rst"))
     data = bf.read()
     assert len(data) > 0
     bf.close()
 
 @test
-def test_binary_file_not_found():
+func test_binary_file_not_found():
     filename = Path("test_binary_file_not_found.bin")
     filename.rm(force=True)
 
@@ -514,7 +514,7 @@ def test_binary_file_not_found():
     filename.rm(force=True)
 
 @test
-def test_create_binary_file():
+func test_create_binary_file():
     filename = Path("test_create_binary_file.bin")
     filename.rm(force=True)
 
@@ -527,7 +527,7 @@ def test_create_binary_file():
     filename.rm(force=True)
 
 @test
-def test_write_binary_file():
+func test_write_binary_file():
     filename = Path("test_write_binary_file.bin")
     filename.rm(force=True)
 
@@ -542,7 +542,7 @@ def test_write_binary_file():
     filename.rm(force=True)
 
 @test
-def test_read_binary_file_with_slash_slash():
+func test_read_binary_file_with_slash_slash():
     filename = Path("test_read_binary_file_with_slash_slash.bin")
     filename.rm(force=True)
 
@@ -557,14 +557,14 @@ def test_read_binary_file_with_slash_slash():
     filename.rm(force=True)
 
 @test
-def test_text_file():
+func test_text_file():
     tf = TextFile(Path("README.rst"))
     data = tf.read()
     assert "Os" in data
     tf.close()
 
 @test
-def test_write_text_file():
+func test_write_text_file():
     filename = Path("test_write_text_file.txt")
     filename.rm(force=True)
 
@@ -579,7 +579,7 @@ def test_write_text_file():
     filename.rm(force=True)
 
 @test
-def test_text_file_does_not_exist():
+func test_text_file_does_not_exist():
     try:
         message = ""
         TextFile(Path("flapp.flopp"))
@@ -589,7 +589,7 @@ def test_text_file_does_not_exist():
     assert message.starts_with("failed to open 'flapp.flopp': ")
 
 @test
-def test_tar():
+func test_tar():
     directory = Path("test_tar")
     archive = Path("test_tar.tar.gz")
 

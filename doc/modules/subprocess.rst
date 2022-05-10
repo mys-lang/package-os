@@ -8,7 +8,7 @@ Example
 
    from os.subprocess import run
 
-   def main():
+   func main():
        proc = run("ls")
        print(proc)
 

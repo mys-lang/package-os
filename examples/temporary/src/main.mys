@@ -1,6 +1,6 @@
 from os.temporary import File
 from os.temporary import Directory
 
-def main():
+func main():
     print("File:     ", File().path())
     print("Directory:", Directory().path())

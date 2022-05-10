@@ -27,7 +27,7 @@ class Path:
 
     _parts: [string]
 
-    def __init__(self, path: string):
+    func __init__(self, path: string):
         if path == "":
             path = "."
 
@@ -42,13 +42,13 @@ class Path:
 
             self._parts.append(part)
 
-    def __eq__(self, other: Path) -> bool:
+    func __eq__(self, other: Path) -> bool:
         return str(self) == str(other)
 
-    def __ne__(self, other: Path) -> bool:
+    func __ne__(self, other: Path) -> bool:
         return not (self == other)
 
-    def name(self) -> string:
+    func name(self) -> string:
         """The final component.
 
         """
@@ -63,7 +63,7 @@ class Path:
 
         return name
 
-    def stem(self) -> string:
+    func stem(self) -> string:
         """The final component without extension.
 
         """
@@ -75,7 +75,7 @@ class Path:
         else:
             return self.name()
 
-    def extension(self) -> string:
+    func extension(self) -> string:
         """The final component extension, including the dot.
 
         """
@@ -88,14 +88,14 @@ class Path:
 
         return name[last_dot_index:]
 
-    def parent(self) -> Path:
+    func parent(self) -> Path:
         """The parent path.
 
         """
 
         return Path("/".join(self._parts[:-1]))
 
-    def join(self, other: string) -> Path:
+    func join(self, other: string) -> Path:
         """Join with other path.
 
         """
@@ -105,28 +105,28 @@ class Path:
         else:
             return Path(str(self) + "/" + other)
 
-    def join(self, other: Path) -> Path:
+    func join(self, other: Path) -> Path:
         """Join with other path.
 
         """
 
         return self.join(str(other))
 
-    def is_absolute(self) -> bool:
+    func is_absolute(self) -> bool:
         """Check if absolute.
 
         """
 
         return len(self._parts) > 0 and self._parts[0] == "/"
 
-    def is_relative(self) -> bool:
+    func is_relative(self) -> bool:
         """Check if relative.
 
         """
 
         return not self.is_absolute()
 
-    def with_name(self, name: string) -> Path:
+    func with_name(self, name: string) -> Path:
         """Returns a new path with given name.
 
         """
@@ -138,14 +138,14 @@ class Path:
         else:
             return self.parent().join(name)
 
-    def with_stem(self, stem: string) -> Path:
+    func with_stem(self, stem: string) -> Path:
         """Returns a new path with given stem.
 
         """
 
         return self.with_name(stem + self.extension())
 
-    def with_extension(self, extension: string) -> Path:
+    func with_extension(self, extension: string) -> Path:
         """Returns a new path with given extension.
 
         """
@@ -155,49 +155,49 @@ class Path:
 
         return self.with_name(self.stem() + extension)
 
-    def read_text(self) -> string:
+    func read_text(self) -> string:
         """Read file contents.
 
         """
 
         return TextFile(self).read()
 
-    def write_text(self, data: string):
+    func write_text(self, data: string):
         """Write file contents.
 
         """
 
         TextFile(self, "w").write(data)
 
-    def read_binary(self) -> bytes:
+    func read_binary(self) -> bytes:
         """Read file contents.
 
         """
 
         return BinaryFile(self).read()
 
-    def write_binary(self, data: bytes):
+    func write_binary(self, data: bytes):
         """Write file contents.
 
         """
 
         BinaryFile(self, "w").write(data)
 
-    def open_binary(self, mode: string = "r") -> BinaryFile:
+    func open_binary(self, mode: string = "r") -> BinaryFile:
         """Open binary file.
 
         """
 
         return BinaryFile(self, mode)
 
-    def open_text(self, mode: string = "r") -> TextFile:
+    func open_text(self, mode: string = "r") -> TextFile:
         """Open binary file.
 
         """
 
         return TextFile(self, mode)
 
-    def exists(self) -> bool:
+    func exists(self) -> bool:
         """Check for existence.
 
         """
@@ -211,7 +211,7 @@ class Path:
 
         return res
 
-    def mkdir(self, exists_ok: bool = False):
+    func mkdir(self, exists_ok: bool = False):
         """Create directories.
 
         Give `exists_ok` as ``True`` to ignore errors.
@@ -239,7 +239,7 @@ class Path:
         if message is not None:
             raise OsError(message)
 
-    def chmod(self, mode: u32):
+    func chmod(self, mode: u32):
         """Change permissions.
 
         """
@@ -256,7 +256,7 @@ class Path:
         if message is not None:
             raise OsError(message)
 
-    def ls(self) -> [Path]:
+    func ls(self) -> [Path]:
         """Returns all files and folders.
 
         """
@@ -279,7 +279,7 @@ class Path:
 
         return entries
 
-    def rm(self, recursive: bool = False, force: bool = False):
+    func rm(self, recursive: bool = False, force: bool = False):
         """Remove files and directories.
 
         Give `recursive` as ``True`` to remove all files and folders
@@ -317,7 +317,7 @@ class Path:
         if message is not None:
             raise OsError(message)
 
-    def touch(self):
+    func touch(self):
         """Update modification time and creates if missing.
 
         """
@@ -336,7 +336,7 @@ class Path:
         if fd == -1:
             raise OsError(f"Touch failed.")
 
-    def cd(self):
+    func cd(self):
         """Change directory.
 
         """
@@ -357,7 +357,7 @@ class Path:
         if message is not None:
             raise OsError(message)
 
-    def cp(self, dst: Path, recursive: bool = False):
+    func cp(self, dst: Path, recursive: bool = False):
         """Copy files and directories.
 
         """
@@ -389,7 +389,7 @@ class Path:
         if message is not None:
             raise OsError(message)
 
-    def mv(self, dst: Path):
+    func mv(self, dst: Path):
         """Move files and directories.
 
         """
@@ -397,18 +397,18 @@ class Path:
         self.cp(dst, recursive=True)
         self.rm(recursive=True, force=True)
 
-    def __str__(self) -> string:
+    func __str__(self) -> string:
         return "/".join(self._parts).replace("//", "/")
 
 @test
-def test_path():
+func test_path():
     assert str(Path("")) == ""
     assert str(Path("foo//bar")) == "foo/bar"
     assert str(Path("foo/./bar")) == "foo/bar"
     assert str(Path("foo/../bar")) == "foo/../bar"
 
 @test
-def test_name():
+func test_name():
     assert Path("foo/bar.txt").name() == "bar.txt"
     assert Path("").name() == ""
     assert Path("foo.txt").name() == "foo.txt"
@@ -418,7 +418,7 @@ def test_name():
     assert Path("a/b/").name() == "b"
 
 @test
-def test_stem():
+func test_stem():
     assert Path("foo/bar.txt").stem() == "bar"
     assert Path("").stem() == ""
     assert Path("foo.txt").stem() == "foo"
@@ -429,7 +429,7 @@ def test_stem():
     assert Path("foo.tar.gz.").stem() == "foo.tar.gz."
 
 @test
-def test_extension():
+func test_extension():
     assert Path("foo/bar.txt").extension() == ".txt"
     assert Path("").extension() == ""
     assert Path("bar.tar.gz").extension() == ".gz"
@@ -441,13 +441,13 @@ def test_extension():
     assert Path("foo.tar.gz.").extension() == ""
 
 @test
-def test_parent():
+func test_parent():
     assert Path("foo/bar.txt").parent() == Path("foo")
     assert Path(".").parent() == Path(".")
     assert Path("foo").parent().parent() == Path(".")
 
 @test
-def test_join():
+func test_join():
     path = Path("foo").join("bar.txt")
     assert str(path) == "foo/bar.txt"
 
@@ -476,7 +476,7 @@ def test_join():
     assert str(path) == ""
 
 @test
-def test_ls():
+func test_ls():
     directory = Path("ls")
     directory.rm(recursive=True, force=True)
     directory.mkdir()
@@ -494,7 +494,7 @@ def test_ls():
     directory.rm(recursive=True, force=True)
 
 @test
-def test_rm():
+func test_rm():
     directory = Path("test_rm")
     directory.rm(recursive=True, force=True)
     directory.mkdir()
@@ -512,7 +512,7 @@ def test_rm():
     directory.rm(recursive=True)
 
 @test
-def test_rm_single_file():
+func test_rm_single_file():
     filename = Path("test_rm_single_file")
     filename.touch()
     filename.rm()
@@ -528,7 +528,7 @@ def test_rm_single_file():
     filename.rm(force=True)
 
 @test
-def test_chmod():
+func test_chmod():
     filename = Path("cmod")
 
     filename.rm(force=True)
@@ -546,7 +546,7 @@ def test_chmod():
     filename.rm()
 
 @test
-def test_mkdir():
+func test_mkdir():
     directory = Path("adir")
     directory.rm(force=True)
     directory.mkdir(exists_ok=True)
@@ -560,7 +560,7 @@ def test_mkdir():
     assert message == "File exists"
 
 @test
-def test_cd():
+func test_cd():
     Path("ccc").rm(recursive=True, force=True)
     path = cwd()
 
@@ -583,7 +583,7 @@ def test_cd():
     Path("ccc").rm(recursive=True, force=True)
 
 @test
-def test_cp():
+func test_cp():
     Path("cp").rm(recursive=True, force=True)
     Path("cp-2").rm(recursive=True, force=True)
 
@@ -606,7 +606,7 @@ def test_cp():
     Path("cp-2").rm(recursive=True, force=True)
 
 @test
-def test_mv():
+func test_mv():
     Path("mv").rm(recursive=True, force=True)
     Path("mv-2").rm(recursive=True, force=True)
 
@@ -626,7 +626,7 @@ def test_mv():
     Path("mv-2").rm(recursive=True, force=True)
 
 @test
-def test_with_name():
+func test_with_name():
     try:
         assert Path("").with_name("foo.txt") == Path("")
         assert False
@@ -667,7 +667,7 @@ def test_with_name():
     assert message == "Invalid name '/a'."
 
 @test
-def test_with_stem():
+func test_with_stem():
     assert Path("foo.log").with_stem("bar") == Path("bar.log")
     assert Path("foo").with_stem("bar") == Path("bar")
     assert Path("a/b.c").with_stem("d") == Path("a/d.c")
@@ -702,7 +702,7 @@ def test_with_stem():
     assert message == "Invalid name ''."
 
 @test
-def test_with_extension():
+func test_with_extension():
     assert Path("foo.log").with_extension(".txt") == Path("foo.txt")
     assert Path("a").with_extension(".b") == Path("a.b")
     assert Path("a").with_extension("..b") == Path("a..b")
@@ -737,7 +737,7 @@ def test_with_extension():
     assert message == "Path '' has no name."
 
 @test
-def test_is_absolute():
+func test_is_absolute():
     assert Path("/").is_absolute()
     assert Path("/a/b").is_absolute()
     assert not Path("a/b").is_absolute()
@@ -745,7 +745,7 @@ def test_is_absolute():
     assert not Path("").is_absolute()
 
 @test
-def test_is_relative():
+func test_is_relative():
     assert not Path("/").is_relative()
     assert not Path("/a/b").is_relative()
     assert Path("a/b").is_relative()
@@ -753,7 +753,7 @@ def test_is_relative():
     assert Path("").is_relative()
 
 @test
-def test_touch():
+func test_touch():
     path = Path("touch.txt")
     path.rm(force=True)
 
