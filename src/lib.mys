@@ -48,6 +48,23 @@ class Stdin:
 
         return value
 
+    func read(self) -> bytes:
+        """Reads from standard input until end of file is reached.
+
+        """
+
+        data = b""
+
+        while True:
+            value = self.get()
+
+            if value == -1:
+                break
+
+            data += u8(value)
+
+        return data
+
 class Stdout:
 
     func put(self, value: u8):
