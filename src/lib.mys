@@ -26,6 +26,21 @@ static inline void unsetenv_wrapper(const char *name_p)
 {
     unsetenv(name_p);
 }
+
+static inline i64 geteuid_wrapper()
+{
+    return geteuid();
+}
+
+static inline struct passwd *getpwuid_wrapper(i64 uid)
+{
+    return getpwuid(uid);
+}
+
+static inline struct passwd *getpwnam_wrapper(const char *name_p)
+{
+    return getpwnam(name_p);
+}
 """
 
 class Stdin:
@@ -456,6 +471,85 @@ func nproc(all: bool = False, ignore: i64 = 0) -> i64:
 
     return max(1, count)
 
+func geteuid() -> i64:
+    """Get the effective user ID of the calling process.
+
+    """
+
+    uid = -1
+
+    c"uid = geteuid_wrapper();"
+
+    return uid
+
+class Passwd:
+    name: string
+    uid: i64
+    gid: i64
+    dir: string
+    shell: string
+
+func getpasswd(uid: i64) -> Passwd:
+    """Get given user's passwd entry.
+
+    """
+
+    passwd = Passwd(None, -1, -1, None, None)
+
+    c"""
+    struct passwd *passwd_p = getpwuid_wrapper(uid);
+
+    if (passwd_p != NULL) {
+        passwd->name = String(passwd_p->pw_name);
+        passwd->uid = passwd_p->pw_uid;
+        passwd->gid = passwd_p->pw_gid;
+        passwd->dir = String(passwd_p->pw_dir);
+        passwd->shell = String(passwd_p->pw_shell);
+    } else {
+        passwd = nullptr;
+    }
+    """
+
+    if passwd is None:
+        raise OsError(f"Failed to get passwd for UID {uid}")
+
+    return passwd
+
+func getpasswd(username: string) -> Passwd:
+    """Get given user's passwd entry.
+
+    """
+
+    passwd = Passwd(None, -1, -1, None, None)
+    username_utf8 = to_utf8(username)
+
+    c"""
+    struct passwd *passwd_p =
+        getpwnam_wrapper((const char *)username_utf8.m_bytes->data());
+
+    if (passwd_p != NULL) {
+        passwd->name = String(passwd_p->pw_name);
+        passwd->uid = passwd_p->pw_uid;
+        passwd->gid = passwd_p->pw_gid;
+        passwd->dir = String(passwd_p->pw_dir);
+        passwd->shell = String(passwd_p->pw_shell);
+    } else {
+        passwd = nullptr;
+    }
+    """
+
+    if passwd is None:
+        raise OsError(f"Failed to get passwd for user {username}")
+
+    return passwd
+
+func whoami() -> string:
+    """Get effective user name.
+
+    """
+
+    return getpasswd(geteuid()).name
+
 @test
 func test_nproc():
     assert nproc() > 0
@@ -625,3 +719,22 @@ func test_tar():
 
     directory.rm(recursive=True, force=True)
     archive.rm(recursive=True, force=True)
+
+@test
+func test_geteuid():
+    assert geteuid() >= 0
+
+@test
+func test_getpasswd():
+    passwd_1 = getpasswd(geteuid())
+    assert passwd_1.name is not None
+    assert passwd_1.uid >= 0
+    assert passwd_1.gid >= 0
+    assert passwd_1.dir is not None
+    assert passwd_1.shell is not None
+
+    assert getpasswd(passwd_1.name) == passwd_1
+
+@test
+func test_whoami():
+    assert whoami() is not None
