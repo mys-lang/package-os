@@ -7,8 +7,12 @@ c"""source-before-namespace
 #include <unistd.h>
 """
 
-func _create_template() -> bytes:
-    tmpdir = getenv("TMPDIR", "/tmp").strip_right("/")
+func _create_template(directory: Path) -> bytes:
+    if directory is None:
+        tmpdir = getenv("TMPDIR", "/tmp").strip_right("/")
+    else:
+        tmpdir = str(directory)
+
     name = f"{tmpdir}/tmp.XXXXXX".to_utf8()
     name += 0
 
@@ -22,10 +26,10 @@ class File:
     _path: Path
     _remove: bool
 
-    func __init__(self, remove: bool = True):
+    func __init__(self, remove: bool = True, directory: Path = None):
         self._path = None
         self._remove = remove
-        name = _create_template()
+        name = _create_template(directory)
 
         c"""
         int fd = mkstemp((char *)name.m_bytes->data());
@@ -62,10 +66,10 @@ class Directory:
     _path: Path
     _remove: bool
 
-    func __init__(self, remove: bool = True):
+    func __init__(self, remove: bool = True, directory: Path = None):
         self._path = None
         self._remove = remove
-        name = _create_template()
+        name = _create_template(directory)
 
         c"""
         if (mkdtemp((char *)name.m_bytes->data()) != NULL) {
@@ -107,6 +111,14 @@ func test_file_remove():
     path_remove_false.rm()
 
 @test
+func test_file_in_custom_directory():
+    tmpdir = Directory()
+    directory = tmpdir.path()
+    tmpfile = File(directory=directory)
+    assert tmpfile.path().exists()
+    assert tmpfile.path().parent() == directory
+
+@test
 func test_directory():
     tmpdir = Directory()
     assert tmpdir.path().exists()
@@ -128,3 +140,11 @@ func test_remove_directory():
     tmpdir.path().cd()
     Path("foo.txt").touch()
     original_path.cd()
+
+@test
+func test_directory_in_custom_directory():
+    tmpdir = Directory()
+    directory = tmpdir.path()
+    tmpfile = Directory(directory=directory)
+    assert tmpfile.path().exists()
+    assert tmpfile.path().parent() == directory
