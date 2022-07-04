@@ -43,7 +43,7 @@ class Path:
             self._parts.append(part)
 
     func __eq__(self, other: Path) -> bool:
-        return str(self) == str(other)
+        return self.to_string() == other.to_string()
 
     func __ne__(self, other: Path) -> bool:
         return not (self == other)
@@ -103,14 +103,14 @@ class Path:
         if self.name() == "" and len(self._parts) == 0:
             return Path("./" + other)
         else:
-            return Path(str(self) + "/" + other)
+            return Path(self.to_string() + "/" + other)
 
     func join(self, other: Path) -> Path:
         """Join with other path.
 
         """
 
-        return self.join(str(other))
+        return self.join(other.to_string())
 
     func is_absolute(self) -> bool:
         """Check if absolute.
@@ -203,7 +203,7 @@ class Path:
         """
 
         res: bool = False
-        path_utf8 = to_utf8(str(self))
+        path_utf8 = to_utf8(self.to_string())
 
         c"""
         res = std::filesystem::exists((const char *)path_utf8.m_bytes->data());
@@ -218,7 +218,7 @@ class Path:
 
         """
 
-        path_utf8 = to_utf8(str(self))
+        path_utf8 = to_utf8(self.to_string())
         message: string = None
 
         c"""
@@ -245,7 +245,7 @@ class Path:
         """
 
         message: string = None
-        path_utf8 = to_utf8(str(self))
+        path_utf8 = to_utf8(self.to_string())
 
         c"""
         if (chmod_wrapper((const char *)path_utf8.m_bytes->data(), mode) != 0) {
@@ -261,7 +261,7 @@ class Path:
 
         """
 
-        dpath = str(self)
+        dpath = self.to_string()
 
         if dpath == "":
             dpath = "."
@@ -289,7 +289,7 @@ class Path:
 
         """
 
-        path_utf8 = to_utf8(str(self))
+        path_utf8 = to_utf8(self.to_string())
         message: string = None
 
         c"""
@@ -322,7 +322,7 @@ class Path:
 
         """
 
-        path_utf8 = to_utf8(str(self))
+        path_utf8 = to_utf8(self.to_string())
         fd = 0
 
         c"""
@@ -341,7 +341,7 @@ class Path:
 
         """
 
-        path_utf8 = to_utf8(str(self))
+        path_utf8 = to_utf8(self.to_string())
         message: string = None
 
         c"""
@@ -362,7 +362,7 @@ class Path:
 
         """
 
-        src_utf8 = to_utf8(str(self))
+        src_utf8 = to_utf8(self.to_string())
         dst_utf8 = to_utf8(str(dst))
         message: string = None
 
@@ -397,15 +397,22 @@ class Path:
         self.cp(dst, recursive=True)
         self.rm(recursive=True, force=True)
 
-    func __str__(self) -> string:
+    func to_string(self) -> string:
+        """Return the path as a string.
+
+        """
+
         return "/".join(self._parts).replace("//", "/")
+
+    func __str__(self) -> string:
+        return self.to_string()
 
 @test
 func test_path():
-    assert str(Path("")) == ""
-    assert str(Path("foo//bar")) == "foo/bar"
-    assert str(Path("foo/./bar")) == "foo/bar"
-    assert str(Path("foo/../bar")) == "foo/../bar"
+    assert Path("").to_string() == ""
+    assert Path("foo//bar").to_string() == "foo/bar"
+    assert Path("foo/./bar").to_string() == "foo/bar"
+    assert Path("foo/../bar").to_string() == "foo/../bar"
 
 @test
 func test_name():
@@ -449,31 +456,31 @@ func test_parent():
 @test
 func test_join():
     path = Path("foo").join("bar.txt")
-    assert str(path) == "foo/bar.txt"
+    assert path.to_string() == "foo/bar.txt"
 
     path = Path("foo").join("/bar.txt")
-    assert str(path) == "foo/bar.txt"
+    assert path.to_string() == "foo/bar.txt"
 
     path = Path("foo/").join("/bar.txt")
-    assert str(path) == "foo/bar.txt"
+    assert path.to_string() == "foo/bar.txt"
 
     path = Path("foo").join(Path("bar.txt"))
-    assert str(path) == "foo/bar.txt"
+    assert path.to_string() == "foo/bar.txt"
 
     path = Path(".").join(Path("bar.txt"))
-    assert str(path) == "bar.txt"
+    assert path.to_string() == "bar.txt"
 
     path = Path("./").join(Path("/bar.txt"))
-    assert str(path) == "bar.txt"
+    assert path.to_string() == "bar.txt"
 
     path = Path("").join(Path("/bar.txt"))
-    assert str(path) == "bar.txt"
+    assert path.to_string() == "bar.txt"
 
     path = Path("/").join(Path("bar.txt"))
-    assert str(path) == "/bar.txt"
+    assert path.to_string() == "/bar.txt"
 
     path = Path("").join(Path("/"))
-    assert str(path) == ""
+    assert path.to_string() == ""
 
 @test
 func test_ls():
