@@ -36,7 +36,7 @@ class CompletedProcess:
     stdout: bytes
     stderr: bytes
 
-func run(command: string) -> CompletedProcess:
+func run(command: string, check: bool = True) -> CompletedProcess:
     """Run given command in a subprocess and return it's exit code and
     output once completed.
 
@@ -79,6 +79,10 @@ func run(command: string) -> CompletedProcess:
     if not ok:
         raise OsError("Subprocess could not be started.")
 
+    if check and completed_process.exit_code != 0:
+        raise OsError(
+            f"'{command}' failed with exit code {completed_process.exit_code}.")
+
     return completed_process
 
 @test
@@ -90,7 +94,15 @@ func test_run():
 
 @test
 func test_run_command_not_found():
-    proc = run("mys-999")
+    proc = run("mys-999", check=False)
     assert proc.exit_code != 0
     assert string(proc.stdout) == ""
     assert "not found" in string(proc.stderr)
+
+@test
+func test_run_command_not_found_no_check():
+    try:
+        run("mys-999")
+        assert False
+    except OsError as error:
+        assert "'mys-999' failed with exit code " in error.message
