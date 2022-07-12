@@ -12,6 +12,7 @@ c"""
 class RunData {
 public:
     const char *command_p;
+    bool capture_output;
     struct subprocess_result_t *result_p;
     mys::shared_ptr<Fiber> fiber;
 };
@@ -20,7 +21,11 @@ static void run_work(uv_work_t *request_p)
 {
     RunData *run_data_p = (RunData *)request_p->data;
 
-    run_data_p->result_p = subprocess_exec_output(run_data_p->command_p);
+    if (run_data_p->capture_output) {
+        run_data_p->result_p = subprocess_exec_output(run_data_p->command_p);
+    } else {
+        run_data_p->result_p = subprocess_exec(run_data_p->command_p);
+    }
 }
 
 static void run_completed(uv_work_t *request_p, int status)
@@ -36,9 +41,16 @@ class CompletedProcess:
     stdout: bytes
     stderr: bytes
 
-func run(command: string, check: bool = True) -> CompletedProcess:
+func run(command: string,
+         check: bool = True,
+         capture_output: bool = True) -> CompletedProcess:
     """Run given command in a subprocess and return it's exit code and
     output once completed.
+
+    Raises an error if ``check`` is ``True`` and the subprocess exit code is
+    not zero.
+
+    Captures stdout and stdout if ``capture_output`` is ``True``.
 
     """
 
@@ -52,6 +64,7 @@ func run(command: string, check: bool = True) -> CompletedProcess:
     RunData run_data;
 
     run_data.command_p = (const char *)command_utf8.m_bytes->data();
+    run_data.capture_output = capture_output;
     run_data.result_p = NULL;
     run_data.fiber = current();
     request.data = &run_data;
@@ -106,3 +119,10 @@ func test_run_command_not_found_no_check():
         assert False
     except OsError as error:
         assert "'mys-999' failed with exit code " in error.message
+
+@test
+func test_run_dont_capture_output():
+    proc = run("echo hej", capture_output=False)
+    assert proc.exit_code == 0
+    assert string(proc.stdout) == ""
+    assert string(proc.stderr) == ""

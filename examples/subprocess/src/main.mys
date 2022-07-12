@@ -1,0 +1,15 @@
+from os.subprocess import run
+
+func main():
+    print("Output to stdout:")
+    run("echo hello to stdout", capture_output=False)
+    print()
+
+    print("Output to stderr:")
+    run("echo hello to stderr 1>&2", capture_output=False)
+    print()
+
+    print("Capture output:")
+    proc = run("echo hello to stdout ; echo hello to stderr 1>&2")
+    print("stdout:", proc.stdout)
+    print("stderr:", proc.stderr)
