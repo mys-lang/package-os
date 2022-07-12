@@ -50,7 +50,7 @@ func run(command: string,
     Raises an error if ``check`` is ``True`` and the subprocess exit code is
     not zero.
 
-    Captures stdout and stdout if ``capture_output`` is ``True``.
+    Captures stdout and stderr if ``capture_output`` is ``True``.
 
     """
 
