@@ -550,19 +550,16 @@ func whoami() -> string:
 
     return getpasswd(geteuid()).name
 
-@test
-func test_nproc():
+test nproc():
     assert nproc() > 0
     assert nproc(all=True) >= nproc()
     assert nproc(ignore=1) in [1, nproc() - 1]
     assert nproc(ignore=nproc()) == 1
 
-@test
-func test_env_get_pwd():
+test env_get_pwd():
     assert getenv("PWD") is not None
 
-@test
-func test_env_get_set_unset():
+test env_get_set_unset():
     try:
         message = ""
         getenv("FOOBAR")
@@ -578,13 +575,11 @@ func test_env_get_set_unset():
     unsetenv("FOOBAR")
     assert getenv("FOOBAR", None) is None
 
-@test
-func test_all():
+test all():
     assert env() is not None
     assert "PWD" in env()
 
-@test
-func test_cwd():
+test cwd():
     directory = Path("cmd")
     directory.mkdir(exists_ok=True)
     directory.cd()
@@ -592,8 +587,7 @@ func test_cwd():
     Path("..").cd()
     directory.rm()
 
-@test
-func test_which():
+test which():
     try:
         which("mys-xyz123")
         assert False
@@ -602,15 +596,13 @@ func test_which():
 
     assert which("ls") is not None
 
-@test
-func test_binary_file():
+test binary_file():
     bf = BinaryFile(Path("README.rst"))
     data = bf.read()
     assert len(data) > 0
     bf.close()
 
-@test
-func test_binary_file_not_found():
+test binary_file_not_found():
     filename = Path("test_binary_file_not_found.bin")
     filename.rm(force=True)
 
@@ -624,8 +616,7 @@ func test_binary_file_not_found():
 
     filename.rm(force=True)
 
-@test
-func test_create_binary_file():
+test create_binary_file():
     filename = Path("test_create_binary_file.bin")
     filename.rm(force=True)
 
@@ -637,8 +628,7 @@ func test_create_binary_file():
 
     filename.rm(force=True)
 
-@test
-func test_write_binary_file():
+test write_binary_file():
     filename = Path("test_write_binary_file.bin")
     filename.rm(force=True)
 
@@ -652,8 +642,7 @@ func test_write_binary_file():
 
     filename.rm(force=True)
 
-@test
-func test_read_binary_file_with_slash_slash():
+test read_binary_file_with_slash_slash():
     filename = Path("test_read_binary_file_with_slash_slash.bin")
     filename.rm(force=True)
 
@@ -667,15 +656,13 @@ func test_read_binary_file_with_slash_slash():
 
     filename.rm(force=True)
 
-@test
-func test_text_file():
+test text_file():
     tf = TextFile(Path("README.rst"))
     data = tf.read()
     assert "Os" in data
     tf.close()
 
-@test
-func test_write_text_file():
+test write_text_file():
     filename = Path("test_write_text_file.txt")
     filename.rm(force=True)
 
@@ -689,8 +676,7 @@ func test_write_text_file():
 
     filename.rm(force=True)
 
-@test
-func test_text_file_does_not_exist():
+test text_file_does_not_exist():
     try:
         message = ""
         TextFile(Path("flapp.flopp"))
@@ -699,8 +685,7 @@ func test_text_file_does_not_exist():
 
     assert message.starts_with("failed to open 'flapp.flopp': ")
 
-@test
-func test_tar():
+test tar():
     directory = Path("test_tar")
     archive = Path("test_tar.tar.gz")
 
@@ -720,12 +705,10 @@ func test_tar():
     directory.rm(recursive=True, force=True)
     archive.rm(recursive=True, force=True)
 
-@test
-func test_geteuid():
+test geteuid():
     assert geteuid() >= 0
 
-@test
-func test_getpasswd():
+test getpasswd():
     passwd_1 = getpasswd(geteuid())
     assert passwd_1.name is not None
     assert passwd_1.uid >= 0
@@ -735,6 +718,5 @@ func test_getpasswd():
 
     assert getpasswd(passwd_1.name) == passwd_1
 
-@test
-func test_whoami():
+test whoami():
     assert whoami() is not None

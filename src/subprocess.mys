@@ -98,30 +98,26 @@ func run(command: string,
 
     return completed_process
 
-@test
-func test_run():
+test run():
     proc = run("echo hej")
     assert proc.exit_code == 0
     assert string(proc.stdout) == "hej\n"
     assert string(proc.stderr) == ""
 
-@test
-func test_run_command_not_found():
+test run_command_not_found():
     proc = run("mys-999", check=False)
     assert proc.exit_code != 0
     assert string(proc.stdout) == ""
     assert "not found" in string(proc.stderr)
 
-@test
-func test_run_command_not_found_no_check():
+test run_command_not_found_no_check():
     try:
         run("mys-999")
         assert False
     except OsError as error:
         assert "'mys-999' failed with exit code " in error.message
 
-@test
-func test_run_dont_capture_output():
+test run_dont_capture_output():
     proc = run("echo hej", capture_output=False)
     assert proc.exit_code == 0
     assert string(proc.stdout) == ""

@@ -407,15 +407,13 @@ class Path:
     func __str__(self) -> string:
         return self.to_string()
 
-@test
-func test_path():
+test path():
     assert Path("").to_string() == ""
     assert Path("foo//bar").to_string() == "foo/bar"
     assert Path("foo/./bar").to_string() == "foo/bar"
     assert Path("foo/../bar").to_string() == "foo/../bar"
 
-@test
-func test_name():
+test name():
     assert Path("foo/bar.txt").name() == "bar.txt"
     assert Path("").name() == ""
     assert Path("foo.txt").name() == "foo.txt"
@@ -424,8 +422,7 @@ func test_name():
     assert Path("foo.tar.gz").name() == "foo.tar.gz"
     assert Path("a/b/").name() == "b"
 
-@test
-func test_stem():
+test stem():
     assert Path("foo/bar.txt").stem() == "bar"
     assert Path("").stem() == ""
     assert Path("foo.txt").stem() == "foo"
@@ -435,8 +432,7 @@ func test_stem():
     assert Path("foo.tar.gz").stem() == "foo.tar"
     assert Path("foo.tar.gz.").stem() == "foo.tar.gz."
 
-@test
-func test_extension():
+test extension():
     assert Path("foo/bar.txt").extension() == ".txt"
     assert Path("").extension() == ""
     assert Path("bar.tar.gz").extension() == ".gz"
@@ -447,14 +443,12 @@ func test_extension():
     assert Path("foo.tar.gz").extension() == ".gz"
     assert Path("foo.tar.gz.").extension() == ""
 
-@test
-func test_parent():
+test parent():
     assert Path("foo/bar.txt").parent() == Path("foo")
     assert Path(".").parent() == Path(".")
     assert Path("foo").parent().parent() == Path(".")
 
-@test
-func test_join():
+test join():
     path = Path("foo").join("bar.txt")
     assert path.to_string() == "foo/bar.txt"
 
@@ -482,8 +476,7 @@ func test_join():
     path = Path("").join(Path("/"))
     assert path.to_string() == ""
 
-@test
-func test_ls():
+test ls():
     directory = Path("ls")
     directory.rm(recursive=True, force=True)
     directory.mkdir()
@@ -500,8 +493,7 @@ func test_ls():
 
     directory.rm(recursive=True, force=True)
 
-@test
-func test_rm():
+test rm():
     directory = Path("test_rm")
     directory.rm(recursive=True, force=True)
     directory.mkdir()
@@ -518,8 +510,7 @@ func test_rm():
 
     directory.rm(recursive=True)
 
-@test
-func test_rm_single_file():
+test rm_single_file():
     filename = Path("test_rm_single_file")
     filename.touch()
     filename.rm()
@@ -534,8 +525,7 @@ func test_rm_single_file():
 
     filename.rm(force=True)
 
-@test
-func test_chmod():
+test chmod():
     filename = Path("cmod")
 
     filename.rm(force=True)
@@ -552,8 +542,7 @@ func test_chmod():
     filename.chmod(0o666)
     filename.rm()
 
-@test
-func test_mkdir():
+test mkdir():
     directory = Path("adir")
     directory.rm(force=True)
     directory.mkdir(exists_ok=True)
@@ -566,8 +555,7 @@ func test_mkdir():
 
     assert message == "File exists"
 
-@test
-func test_cd():
+test cd():
     Path("ccc").rm(recursive=True, force=True)
     path = cwd()
 
@@ -589,8 +577,7 @@ func test_cd():
 
     Path("ccc").rm(recursive=True, force=True)
 
-@test
-func test_cp():
+test cp():
     Path("cp").rm(recursive=True, force=True)
     Path("cp-2").rm(recursive=True, force=True)
 
@@ -612,8 +599,7 @@ func test_cp():
     Path("cp").rm(recursive=True, force=True)
     Path("cp-2").rm(recursive=True, force=True)
 
-@test
-func test_mv():
+test mv():
     Path("mv").rm(recursive=True, force=True)
     Path("mv-2").rm(recursive=True, force=True)
 
@@ -632,8 +618,7 @@ func test_mv():
 
     Path("mv-2").rm(recursive=True, force=True)
 
-@test
-func test_with_name():
+test with_name():
     try:
         assert Path("").with_name("foo.txt") == Path("")
         assert False
@@ -673,8 +658,7 @@ func test_with_name():
 
     assert message == "Invalid name '/a'."
 
-@test
-func test_with_stem():
+test with_stem():
     assert Path("foo.log").with_stem("bar") == Path("bar.log")
     assert Path("foo").with_stem("bar") == Path("bar")
     assert Path("a/b.c").with_stem("d") == Path("a/d.c")
@@ -708,8 +692,7 @@ func test_with_stem():
 
     assert message == "Invalid name ''."
 
-@test
-func test_with_extension():
+test with_extension():
     assert Path("foo.log").with_extension(".txt") == Path("foo.txt")
     assert Path("a").with_extension(".b") == Path("a.b")
     assert Path("a").with_extension("..b") == Path("a..b")
@@ -743,24 +726,21 @@ func test_with_extension():
 
     assert message == "Path '' has no name."
 
-@test
-func test_is_absolute():
+test is_absolute():
     assert Path("/").is_absolute()
     assert Path("/a/b").is_absolute()
     assert not Path("a/b").is_absolute()
     assert not Path("b").is_absolute()
     assert not Path("").is_absolute()
 
-@test
-func test_is_relative():
+test is_relative():
     assert not Path("/").is_relative()
     assert not Path("/a/b").is_relative()
     assert Path("a/b").is_relative()
     assert Path("b").is_relative()
     assert Path("").is_relative()
 
-@test
-func test_touch():
+test touch():
     path = Path("touch.txt")
     path.rm(force=True)
 

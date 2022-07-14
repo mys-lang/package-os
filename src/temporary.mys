@@ -95,54 +95,47 @@ class Directory:
 
         return self._path
 
-@test
-func test_file():
+test file():
     tmpfile = File()
     assert tmpfile.path().exists()
 
 func _create_files() -> (Path, Path):
     return (File().path(), File(remove=False).path())
 
-@test
-func test_file_remove():
+test file_remove():
     path_remove_true, path_remove_false = _create_files()
     assert not path_remove_true.exists()
     assert path_remove_false.exists()
     path_remove_false.rm()
 
-@test
-func test_file_in_custom_directory():
+test file_in_custom_directory():
     tmpdir = Directory()
     directory = tmpdir.path()
     tmpfile = File(directory=directory)
     assert tmpfile.path().exists()
     assert tmpfile.path().parent() == directory
 
-@test
-func test_directory():
+test directory():
     tmpdir = Directory()
     assert tmpdir.path().exists()
 
 func _create_directories() -> (Path, Path):
     return (Directory().path(), Directory(remove=False).path())
 
-@test
-func test_directory_remove():
+test directory_remove():
     path_remove_true, path_remove_false = _create_directories()
     assert not path_remove_true.exists()
     assert path_remove_false.exists()
     path_remove_false.rm()
 
-@test
-func test_remove_directory():
+test remove_directory():
     tmpdir = Directory()
     original_path = cwd()
     tmpdir.path().cd()
     Path("foo.txt").touch()
     original_path.cd()
 
-@test
-func test_directory_in_custom_directory():
+test directory_in_custom_directory():
     tmpdir = Directory()
     directory = tmpdir.path()
     tmpfile = Directory(directory=directory)
