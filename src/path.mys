@@ -53,7 +53,7 @@ class Path:
 
         """
 
-        if len(self._parts) == 0:
+        if self._parts.length() == 0:
             return ""
 
         name = self._parts[-1]
@@ -68,7 +68,7 @@ class Path:
 
         """
 
-        extension_length = len(self.extension())
+        extension_length = self.extension().length()
 
         if extension_length > 0:
             return self.name()[:-extension_length]
@@ -83,7 +83,7 @@ class Path:
         name = self.name()
         last_dot_index = name.find_reverse('.')
 
-        if last_dot_index <= 0 or last_dot_index == i64(len(name) - 1):
+        if last_dot_index <= 0 or last_dot_index == (name.length() - 1):
             return ""
 
         return name[last_dot_index:]
@@ -100,7 +100,7 @@ class Path:
 
         """
 
-        if self.name() == "" and len(self._parts) == 0:
+        if self.name() == "" and self._parts.length() == 0:
             return Path("./" + other)
         else:
             return Path(self.to_string() + "/" + other)
@@ -117,7 +117,7 @@ class Path:
 
         """
 
-        return len(self._parts) > 0 and self._parts[0] == "/"
+        return self._parts.length() > 0 and self._parts[0] == "/"
 
     func is_relative(self) -> bool:
         """Check if relative.
@@ -150,7 +150,8 @@ class Path:
 
         """
 
-        if (len(extension) > 0 and extension[0] != '.') or len(extension) == 1:
+        if ((extension.length() > 0 and extension[0] != '.')
+            or extension.length() == 1):
             raise OsError(f"Invalid extension '{extension}'.")
 
         return self.with_name(self.stem() + extension)
@@ -486,7 +487,7 @@ test ls():
 
     entries = directory.ls()
 
-    assert len(entries) == 3
+    assert entries.length() == 3
     assert Path("a") in entries
     assert Path("b") in entries
     assert Path("c") in entries

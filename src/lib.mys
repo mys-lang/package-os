@@ -101,7 +101,7 @@ class Stdout:
 
         """
 
-        length = i64(len(data))
+        length = data.length()
         offset = min(offset, length)
         count = min(count, length - offset)
 
@@ -599,7 +599,7 @@ test which():
 test binary_file():
     bf = BinaryFile(Path("README.rst"))
     data = bf.read()
-    assert len(data) > 0
+    assert data.length() > 0
     bf.close()
 
 test binary_file_not_found():
