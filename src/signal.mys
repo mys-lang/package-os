@@ -2,7 +2,7 @@ c"""source-before-namespace
 #include <csignal>
 """
 
-@enum Signal:
+enum Signal:
     Terminate = c"SIGTERM"
     Interrupt = c"SIGINT"
 
