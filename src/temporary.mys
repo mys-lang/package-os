@@ -7,7 +7,7 @@ c"""source-before-namespace
 #include <unistd.h>
 """
 
-func _create_template(directory: Path) -> bytes:
+func _create_template(directory: Path?) -> bytes:
     if directory is None:
         tmpdir = getenv("TMPDIR", "/tmp").strip_right("/")
     else:
@@ -26,7 +26,7 @@ class File:
     _path: Path
     _remove: bool
 
-    func __init__(self, remove: bool = True, directory: Path = None):
+    func __init__(self, remove: bool = True, directory: Path? = None):
         self._path = None
         self._remove = remove
         name = _create_template(directory)
@@ -66,7 +66,7 @@ class Directory:
     _path: Path
     _remove: bool
 
-    func __init__(self, remove: bool = True, directory: Path = None):
+    func __init__(self, remove: bool = True, directory: Path? = None):
         self._path = None
         self._remove = remove
         name = _create_template(directory)

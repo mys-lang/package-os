@@ -207,7 +207,7 @@ class BinaryFile:
     c"char m_data[256];"
     c"uv_file m_file;"
     _data: bytes
-    _fiber: Fiber
+    _fiber: Fiber?
 
     func __init__(self, path: Path, mode: string = "r"):
         """Opens given file. Mode can be `r` or `w`.
@@ -238,7 +238,7 @@ class BinaryFile:
         """
 
         suspend()
-        message: string = None
+        message: string? = None
 
         c"""
         if (m_file < 0) {
@@ -434,8 +434,8 @@ func tar(archive: Path,
         extract: bool = False,
         create: bool = False,
         strip_components: i64 = 0,
-        output_directory: Path = None,
-        path: Path = None):
+        output_directory: Path? = None,
+        path: Path? = None):
     if extract:
         if path is None:
             path = Path("")
