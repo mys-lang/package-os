@@ -220,7 +220,7 @@ class Path:
         """
 
         path_utf8 = to_utf8(self.to_string())
-        message: string = None
+        message: string? = None
 
         c"""
         std::error_code ec;
@@ -245,7 +245,7 @@ class Path:
 
         """
 
-        message: string = None
+        message: string? = None
         path_utf8 = to_utf8(self.to_string())
 
         c"""
@@ -291,7 +291,7 @@ class Path:
         """
 
         path_utf8 = to_utf8(self.to_string())
-        message: string = None
+        message: string? = None
 
         c"""
         std::error_code ec;
@@ -343,7 +343,7 @@ class Path:
         """
 
         path_utf8 = to_utf8(self.to_string())
-        message: string = None
+        message: string? = None
 
         c"""
         std::error_code ec;
@@ -365,7 +365,7 @@ class Path:
 
         src_utf8 = to_utf8(self.to_string())
         dst_utf8 = to_utf8(str(dst))
-        message: string = None
+        message: string? = None
 
         c"""
         std::error_code ec;

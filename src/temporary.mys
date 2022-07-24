@@ -23,7 +23,7 @@ class File:
 
     """
 
-    _path: Path
+    _path: Path?
     _remove: bool
 
     func __init__(self, remove: bool = True, directory: Path? = None):
@@ -63,7 +63,7 @@ class Directory:
 
     """
 
-    _path: Path
+    _path: Path?
     _remove: bool
 
     func __init__(self, remove: bool = True, directory: Path? = None):

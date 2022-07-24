@@ -1,9 +1,12 @@
 from os import cwd
 from os import which
+from os import OsError
 from os.path import Path
 
 func main():
-    if which("ls") is not None:
+    try:
+        print(which("ls"))
+    except OsError:
         print("executable ls found")
 
     foo = Path("foo")

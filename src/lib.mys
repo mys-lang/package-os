@@ -122,7 +122,7 @@ _ENV: {string: string} = _load_env()
 
 func _load_env() -> {string: string}:
     variables = {}
-    line: string = None
+    line: string? = None
 
     c"""
     char **envvar = environ;
@@ -369,7 +369,7 @@ func which(executable: string) -> Path:
     raise OsError(f"Executable '{executable}' not found.")
 
 func cwd() -> Path:
-    path: Path = None
+    path: Path? = None
 
     c"""
     path = mys::make_shared<path::Path>(String(std::filesystem::current_path()));
@@ -384,17 +384,7 @@ func env() -> {string: string}:
 
     return _ENV
 
-func getenv(name: string) -> string:
-    """Get given environment variable.
-
-    """
-
-    if name not in _ENV:
-        raise OsError(f"environment variable '{name}' is not set")
-
-    return getenv(name, None)
-
-func getenv(name: string, default: string) -> string:
+func getenv(name: string, default: string? = None) -> string?:
     """Get given environment variable. Returns given default value if the
     environment variable is not set.
 
@@ -494,33 +484,38 @@ func getpasswd(uid: i64) -> Passwd:
 
     """
 
-    passwd = Passwd(None, -1, -1, None, None)
+    name: string? = None
+    gid: i64 = -1
+    dir: string? = None
+    shell: string? = None
 
     c"""
     struct passwd *passwd_p = getpwuid_wrapper(uid);
 
     if (passwd_p != NULL) {
-        passwd->name = String(passwd_p->pw_name);
-        passwd->uid = passwd_p->pw_uid;
-        passwd->gid = passwd_p->pw_gid;
-        passwd->dir = String(passwd_p->pw_dir);
-        passwd->shell = String(passwd_p->pw_shell);
-    } else {
-        passwd = nullptr;
+        name = String(passwd_p->pw_name);
+        uid = passwd_p->pw_uid;
+        gid = passwd_p->pw_gid;
+        dir = String(passwd_p->pw_dir);
+        shell = String(passwd_p->pw_shell);
     }
     """
 
-    if passwd is None:
+    if name is None:
         raise OsError(f"Failed to get passwd for UID {uid}")
 
-    return passwd
+    return Passwd(name, uid, gid, dir, shell)
 
 func getpasswd(username: string) -> Passwd:
     """Get given user's passwd entry.
 
     """
 
-    passwd = Passwd(None, -1, -1, None, None)
+    name: string? = None
+    uid: i64 = -1
+    gid: i64 = -1
+    dir: string? = None
+    shell: string? = None
     username_utf8 = to_utf8(username)
 
     c"""
@@ -528,20 +523,18 @@ func getpasswd(username: string) -> Passwd:
         getpwnam_wrapper((const char *)username_utf8.m_bytes->data());
 
     if (passwd_p != NULL) {
-        passwd->name = String(passwd_p->pw_name);
-        passwd->uid = passwd_p->pw_uid;
-        passwd->gid = passwd_p->pw_gid;
-        passwd->dir = String(passwd_p->pw_dir);
-        passwd->shell = String(passwd_p->pw_shell);
-    } else {
-        passwd = nullptr;
+        name = String(passwd_p->pw_name);
+        uid = passwd_p->pw_uid;
+        gid = passwd_p->pw_gid;
+        dir = String(passwd_p->pw_dir);
+        shell = String(passwd_p->pw_shell);
     }
     """
 
-    if passwd is None:
+    if name is None:
         raise OsError(f"Failed to get passwd for user {username}")
 
-    return passwd
+    return Passwd(name, uid, gid, dir, shell)
 
 func whoami() -> string:
     """Get effective user name.
@@ -557,16 +550,9 @@ test nproc():
     assert nproc(ignore=nproc()) == 1
 
 test env_get_pwd():
-    assert getenv("PWD") is not None
+    assert "/" in getenv("PWD")
 
 test env_get_set_unset():
-    try:
-        message = ""
-        getenv("FOOBAR")
-    except OsError as e:
-        message = e.message
-
-    assert message == "environment variable 'FOOBAR' is not set"
     assert getenv("FOOBAR", "apple") == "apple"
 
     setenv("FOOBAR", "banan")
@@ -576,7 +562,6 @@ test env_get_set_unset():
     assert getenv("FOOBAR", None) is None
 
 test all():
-    assert env() is not None
     assert "PWD" in env()
 
 test cwd():
@@ -594,7 +579,7 @@ test which():
     except OsError:
         pass
 
-    assert which("ls") is not None
+    assert "ls" in which("ls").to_string()
 
 test binary_file():
     bf = BinaryFile(Path("README.rst"))
@@ -710,13 +695,10 @@ test geteuid():
 
 test getpasswd():
     passwd_1 = getpasswd(geteuid())
-    assert passwd_1.name is not None
     assert passwd_1.uid >= 0
     assert passwd_1.gid >= 0
-    assert passwd_1.dir is not None
-    assert passwd_1.shell is not None
 
     assert getpasswd(passwd_1.name) == passwd_1
 
 test whoami():
-    assert whoami() is not None
+    whoami()
