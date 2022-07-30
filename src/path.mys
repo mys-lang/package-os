@@ -42,10 +42,10 @@ class Path:
 
             self._parts.append(part)
 
-    func __eq__(self, other: Path) -> bool:
+    func ==(self, other: Path) -> bool:
         return self.to_string() == other.to_string()
 
-    func __ne__(self, other: Path) -> bool:
+    func !=(self, other: Path) -> bool:
         return not (self == other)
 
     func name(self) -> string:
